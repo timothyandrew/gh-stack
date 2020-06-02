@@ -3,7 +3,8 @@ use std::env;
 use std::collections::HashMap;
 use std::process;
 
-use gh_stack::*;
+use gh_stack::api;
+use gh_stack::Credentials;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -19,7 +20,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let token = env.get("GHSTACK_OAUTH_TOKEN").expect("You didn't pass `GHSTACK_OAUTH_TOKEN`");
 
     let credentials = Credentials::new(token);
-    fetch_pull_requests_matching(&pattern, &credentials).await?;
+    api::search::fetch_pull_requests_matching(&pattern, &credentials).await?;
 
     Ok(())
     /*
