@@ -1,10 +1,12 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::env;
 use std::error::Error;
 use std::process;
 
 use gh_stack::api;
 use gh_stack::graph;
+use gh_stack::markdown;
 use gh_stack::Credentials;
 
 #[tokio::main]
@@ -25,7 +27,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let credentials = Credentials::new(token);
 
     let prs = api::search::fetch_pull_requests_matching(&pattern, &credentials).await?;
-    graph::build(&prs);
+    let prs = prs.into_iter().map(|pr| Rc::new(pr)).collect();
+    let tree = graph::build(prs);
+    println!("{:?}", tree);
+
+    // markdown::build_table(&graph[..]);
 
     Ok(())
     /*

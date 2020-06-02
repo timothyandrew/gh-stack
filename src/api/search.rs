@@ -2,26 +2,28 @@ use futures::future::join_all;
 use serde::Deserialize;
 use std::error::Error;
 
-use crate::{api, Credentials};
+use crate::{api, markdown, Credentials};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct SearchItem {
     url: String,
     title: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct PullRequestRef {
     label: String,
     r#ref: String,
     sha: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct PullRequest {
     id: usize,
+    number: usize,
     head: PullRequestRef,
     base: PullRequestRef,
+    merges_into: Option<Box<PullRequest>>,
     title: String,
 }
 
@@ -33,7 +35,21 @@ impl PullRequest {
     pub fn base(&self) -> &str {
         &self.base.label
     }
+
+    pub fn set_merges_into(&mut self, into: PullRequest) {
+        // `clone` here to avoid an explosion of lifetime specifiers
+        self.merges_into = Some(Box::new(into))
+    }
 }
+
+// impl markdown::AsMarkdown for PullRequest {
+//     fn as_markdown_table_row(&self) -> String {
+//         match self.merges_into {
+//             Some(into) => format!("|#{}|{}|#{}|", self.number, self.title, into.number),
+//             None => format!("|#{}|{}|`develop`/feature branch|", self.number, self.title),
+//         }
+//     }
+// }
 
 #[derive(Deserialize, Debug)]
 struct SearchResponse {
