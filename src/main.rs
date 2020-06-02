@@ -1,9 +1,10 @@
-use std::error::Error;
-use std::env;
 use std::collections::HashMap;
+use std::env;
+use std::error::Error;
 use std::process;
 
 use gh_stack::api;
+use gh_stack::graph;
 use gh_stack::Credentials;
 
 #[tokio::main]
@@ -17,10 +18,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let pattern = args.last().unwrap();
-    let token = env.get("GHSTACK_OAUTH_TOKEN").expect("You didn't pass `GHSTACK_OAUTH_TOKEN`");
+    let token = env
+        .get("GHSTACK_OAUTH_TOKEN")
+        .expect("You didn't pass `GHSTACK_OAUTH_TOKEN`");
 
     let credentials = Credentials::new(token);
-    api::search::fetch_pull_requests_matching(&pattern, &credentials).await?;
+
+    let prs = api::search::fetch_pull_requests_matching(&pattern, &credentials).await?;
+    graph::build(&prs);
 
     Ok(())
     /*
