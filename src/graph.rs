@@ -1,6 +1,6 @@
+use petgraph::Graph;
 use std::collections::HashMap;
 use std::rc::Rc;
-use petgraph::Graph;
 
 use crate::api::search::PullRequest;
 

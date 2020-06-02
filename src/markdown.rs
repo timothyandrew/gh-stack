@@ -1,8 +1,8 @@
-use petgraph::{Direction,Graph};
-use std::rc::Rc;
 use petgraph::visit::Bfs;
 use petgraph::visit::EdgeRef;
+use petgraph::{Direction, Graph};
 use regex::Regex;
+use std::rc::Rc;
 
 use crate::api::search::PullRequest;
 
@@ -25,9 +25,14 @@ pub fn build_table(graph: Graph<Rc<PullRequest>, usize>) -> String {
         while let Some(node) = bfs.next(&graph) {
             let parent = graph.edges_directed(node, Direction::Incoming).next();
             let node: Rc<PullRequest> = graph[node].clone();
-            
+
             let row = match parent {
-                Some(parent) => format!("|#{}|{}|#{}|\n", node.number(), node.title(), graph[parent.source().clone()].number()),
+                Some(parent) => format!(
+                    "|#{}|{}|#{}|\n",
+                    node.number(),
+                    node.title(),
+                    graph[parent.source().clone()].number()
+                ),
                 None => format!("|#{}|{}|**N/A**|\n", node.number(), node.title()),
             };
 

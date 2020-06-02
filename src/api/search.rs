@@ -35,8 +35,12 @@ impl PullRequest {
         &self.base.label
     }
 
-    pub fn number(&self) -> usize { self.number }
-    pub fn title(&self) -> &str { &self.title }
+    pub fn number(&self) -> usize {
+        self.number
+    }
+    pub fn title(&self) -> &str {
+        &self.title
+    }
 }
 
 #[derive(Deserialize, Debug)]

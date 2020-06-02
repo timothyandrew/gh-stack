@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::env;
 use std::error::Error;
 use std::process;
+use std::rc::Rc;
 
 use gh_stack::api;
 use gh_stack::graph;
