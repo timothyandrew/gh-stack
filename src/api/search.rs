@@ -2,7 +2,7 @@ use futures::future::join_all;
 use serde::Deserialize;
 use std::error::Error;
 
-use crate::{api, markdown, Credentials};
+use crate::{api, Credentials};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SearchItem {
@@ -23,7 +23,6 @@ pub struct PullRequest {
     number: usize,
     head: PullRequestRef,
     base: PullRequestRef,
-    merges_into: Option<Box<PullRequest>>,
     title: String,
 }
 
@@ -36,20 +35,9 @@ impl PullRequest {
         &self.base.label
     }
 
-    pub fn set_merges_into(&mut self, into: PullRequest) {
-        // `clone` here to avoid an explosion of lifetime specifiers
-        self.merges_into = Some(Box::new(into))
-    }
+    pub fn number(&self) -> usize { self.number }
+    pub fn title(&self) -> &str { &self.title }
 }
-
-// impl markdown::AsMarkdown for PullRequest {
-//     fn as_markdown_table_row(&self) -> String {
-//         match self.merges_into {
-//             Some(into) => format!("|#{}|{}|#{}|", self.number, self.title, into.number),
-//             None => format!("|#{}|{}|`develop`/feature branch|", self.number, self.title),
-//         }
-//     }
-// }
 
 #[derive(Deserialize, Debug)]
 struct SearchResponse {
@@ -81,6 +69,7 @@ pub async fn fetch_pull_requests_matching(
         .await
         .into_iter()
         .map(|item| item.unwrap());
+
     let responses: Vec<_> = join_all(items.map(|item| item.json::<PullRequest>()))
         .await
         .into_iter()

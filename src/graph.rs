@@ -1,7 +1,5 @@
-use std::collections::{HashMap, HashSet};
-use petgraph::visit::IntoNodeReferences; 
+use std::collections::HashMap;
 use std::rc::Rc;
-use std::cell::RefCell;
 use petgraph::Graph;
 
 use crate::api::search::PullRequest;
@@ -15,7 +13,7 @@ pub fn build(prs: Vec<Rc<PullRequest>>) -> Graph<Rc<PullRequest>, usize> {
     for (i, pr) in prs.iter().enumerate() {
         let head_handle = handles[i];
         if let Some(&base_handle) = handles_by_head.get(pr.base()) {
-            tree.add_edge(head_handle, *base_handle, 1);
+            tree.add_edge(*base_handle, head_handle, 1);
         }
     }
 

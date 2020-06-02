@@ -1,8 +1,39 @@
-use crate::api::search::PullRequest;
-use std::fmt::Display;
+use petgraph::{Direction,Graph};
+use std::rc::Rc;
+use petgraph::visit::Bfs;
+use petgraph::visit::EdgeRef;
+use regex::Regex;
 
-pub trait AsMarkdown {
-    fn as_markdown_table_row(&self) -> String;
+use crate::api::search::PullRequest;
+
+fn process(row: String) -> String {
+    // TODO: Make this configurable
+    let regex = Regex::new(r"\[HEAP-\d+\]").unwrap();
+    regex.replace_all(&row, "").into_owned()
 }
 
-pub fn build_table<T: Display>(graph: &[T]) {}
+pub fn build_table(graph: Graph<Rc<PullRequest>, usize>) -> String {
+    let mut out = String::new();
+    out.push_str("## Stacked PR Chain");
+    out.push_str("| PR | Title |  Merges Into  |\n");
+    out.push_str("|:--:|:------|:-------------:|\n");
+
+    let roots: Vec<_> = graph.externals(Direction::Incoming).collect();
+
+    for root in roots {
+        let mut bfs = Bfs::new(&graph, root);
+        while let Some(node) = bfs.next(&graph) {
+            let parent = graph.edges_directed(node, Direction::Incoming).next();
+            let node: Rc<PullRequest> = graph[node].clone();
+            
+            let row = match parent {
+                Some(parent) => format!("|#{}|{}|#{}|\n", node.number(), node.title(), graph[parent.source().clone()].number()),
+                None => format!("|#{}|{}|**N/A**|\n", node.number(), node.title()),
+            };
+
+            out.push_str(&process(row));
+        }
+    }
+
+    out
+}

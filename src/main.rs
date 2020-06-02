@@ -29,17 +29,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let prs = api::search::fetch_pull_requests_matching(&pattern, &credentials).await?;
     let prs = prs.into_iter().map(|pr| Rc::new(pr)).collect();
     let tree = graph::build(prs);
-    println!("{:?}", tree);
-
-    // markdown::build_table(&graph[..]);
+    let table = markdown::build_table(tree);
+    println!("{}", table);
 
     Ok(())
     /*
     # TODO
     - [x] Authentication (personal access token)
     - [x] Fetch all PRs matching Jira
-    - [ ] Construct graph
-    - [ ] Create markdown table
+    - [x] Construct graph
+    - [x] Create markdown table
     - [ ] Persist table back to Github
     */
 }
