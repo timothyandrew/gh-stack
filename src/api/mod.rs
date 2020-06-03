@@ -2,8 +2,8 @@ use crate::Credentials;
 use reqwest::{Client, RequestBuilder};
 use std::time::Duration;
 
-pub mod search;
 pub mod pull_request;
+pub mod search;
 
 fn base_request(client: &Client, credentials: &Credentials, url: &str) -> RequestBuilder {
     client

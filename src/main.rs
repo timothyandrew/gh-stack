@@ -4,8 +4,8 @@ use std::error::Error;
 use std::process;
 use std::rc::Rc;
 
-use gh_stack::{api, persist, graph, markdown};
 use gh_stack::Credentials;
+use gh_stack::{api, graph, markdown, persist};
 
 use std::io::{self, Write};
 
@@ -48,13 +48,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let response = read_cli_input("Going to update these PRs ☝️ (y/n): ");
     match &response[..] {
         "y" => persist::persist(&prs, &table, &credentials).await?,
-        _ => std::process::exit(1)
+        _ => std::process::exit(1),
     }
 
     persist::persist(&prs, &table, &credentials).await?;
 
     println!("Done!");
-    
+
     Ok(())
     /*
     # TODO

@@ -25,7 +25,7 @@ pub struct PullRequest {
     base: PullRequestRef,
     title: String,
     url: String,
-    body: String
+    body: String,
 }
 
 impl PullRequest {
