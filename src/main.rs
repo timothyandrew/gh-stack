@@ -62,6 +62,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     - [x] Fetch all PRs matching Jira
     - [x] Construct graph
     - [x] Create markdown table
-    - [ ] Persist table back to Github
+    - [x] Persist table back to Github
+    - [ ] Panic on non-200s
     */
 }
