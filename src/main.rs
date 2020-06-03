@@ -4,10 +4,20 @@ use std::error::Error;
 use std::process;
 use std::rc::Rc;
 
-use gh_stack::api;
-use gh_stack::graph;
-use gh_stack::markdown;
+use gh_stack::{api, persist, graph, markdown};
 use gh_stack::Credentials;
+
+use std::io::{self, Write};
+
+pub fn read_cli_input(message: &str) -> String {
+    print!("{}", message);
+    io::stdout().flush().unwrap();
+
+    let mut buf = String::new();
+    io::stdin().read_line(&mut buf).unwrap();
+
+    buf.trim().to_owned()
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -28,10 +38,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let prs = api::search::fetch_pull_requests_matching(&pattern, &credentials).await?;
     let prs = prs.into_iter().map(|pr| Rc::new(pr)).collect();
-    let tree = graph::build(prs);
-    let table = markdown::build_table(tree);
-    println!("{}", table);
+    let tree = graph::build(&prs);
+    let table = markdown::build_table(tree, pattern);
 
+    for pr in prs.iter() {
+        println!("{}: {}", pr.number(), pr.title());
+    }
+
+    let response = read_cli_input("Going to update these PRs ☝️ (y/n): ");
+    match &response[..] {
+        "y" => persist::persist(&prs, &table, &credentials).await?,
+        _ => std::process::exit(1)
+    }
+
+    persist::persist(&prs, &table, &credentials).await?;
+
+    println!("Done!");
+    
     Ok(())
     /*
     # TODO

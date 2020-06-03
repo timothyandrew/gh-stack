@@ -12,9 +12,9 @@ fn process(row: String) -> String {
     regex.replace_all(&row, "").into_owned()
 }
 
-pub fn build_table(graph: Graph<Rc<PullRequest>, usize>) -> String {
+pub fn build_table(graph: Graph<Rc<PullRequest>, usize>, title: &str) -> String {
     let mut out = String::new();
-    out.push_str("## Stacked PR Chain");
+    out.push_str(&format!("### Stacked PR Chain: {}\n", title));
     out.push_str("| PR | Title |  Merges Into  |\n");
     out.push_str("|:--:|:------|:-------------:|\n");
 

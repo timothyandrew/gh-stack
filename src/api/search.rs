@@ -24,6 +24,8 @@ pub struct PullRequest {
     head: PullRequestRef,
     base: PullRequestRef,
     title: String,
+    url: String,
+    body: String
 }
 
 impl PullRequest {
@@ -35,11 +37,19 @@ impl PullRequest {
         &self.base.label
     }
 
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
     pub fn number(&self) -> usize {
         self.number
     }
     pub fn title(&self) -> &str {
         &self.title
+    }
+
+    pub fn body(&self) -> &str {
+        &self.body
     }
 }
 
