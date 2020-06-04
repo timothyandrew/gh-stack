@@ -1,5 +1,12 @@
 # gh-stack
 
+- [Usage](#usage)
+- [Strategy](#strategy)
+  - [Feature Changes](#feature-changes)
+  - [Feature Complete & Merged](#feature-complete--merged)
+
+---
+
 I use this tool to help managed stacked pull requests on Github, which are notoriously difficult to manage manually. Here are a few examples of the kind of things I'm talking about:
 
 - https://unhashable.com/stacked-pull-requests-keeping-github-diffs-small
@@ -47,14 +54,14 @@ Let's use this stack as an example:
 
 ![](img/initial.png)
 
-## Feature Changes
+### Feature Changes
 
 In the first case, let's assume that "feature part 1" had some changes added to it in the form of a commit; this leaves parts 2 & 3 in a conflicted state:
 
 ![](img/feature-1.png)
 
-The script requires that you pass in a `PREBASE` (which is essentially the boundary for the feature part you're operating on, the last/oldest commit in feature-part-2 in this case). 
-An initial `TO` ref is also required, which is the point upon which you want to rebase the rest of the stack. In this case, that ref is `remote/feature-part-1`).
+The script requires that you pass in a `PREBASE` ref (which is essentially the boundary for the feature part you're operating on - in this case the _parent of the_ last/oldest commit in feature-part-2).
+The script starts cherry-picking commits at this ref for the first iteration. An initial `TO` ref is also required, which is the point upon which you want to rebase the rest of the stack. In this case, that ref is `remote/feature-part-1`).
 
 The script executes a single step, we now have this intermediate state:
 
@@ -64,14 +71,14 @@ The script completes execution, and we now have this final state with the entire
 
 ![](img/feature-3.png)
 
-## Feature Complete & Merged
+### Feature Complete & Merged
 
 In the second case, let's assume that "feature part 2" is done and has been merged to `develop`:
 
 ![](/img/complete-1.png)
 
 This immediately leaves feature parts 2 & 3 in a conflicted state. The script can fix this situation as well.
-As before, pass a `PREBASE` (in this case the oldest commit in feature part 2) and an initial `TO` ref to rebase on (in this case `remote/develop`).
+As before, pass a `PREBASE` (in this case _the parent of the_ oldest commit in feature part 2) and an initial `TO` ref to rebase on (in this case `remote/develop`).
 
 Once the script executes a single step, we're left with:
 
