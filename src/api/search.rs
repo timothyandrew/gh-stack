@@ -18,6 +18,14 @@ pub struct PullRequestRef {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub enum PullRequestStatus {
+    #[serde(rename = "open")]
+    Open,
+    #[serde(rename = "closed")]
+    Closed
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct PullRequest {
     id: usize,
     number: usize,
@@ -26,6 +34,7 @@ pub struct PullRequest {
     title: String,
     url: String,
     body: String,
+    state: PullRequestStatus
 }
 
 impl PullRequest {
@@ -44,8 +53,12 @@ impl PullRequest {
     pub fn number(&self) -> usize {
         self.number
     }
-    pub fn title(&self) -> &str {
-        &self.title
+
+    pub fn title(&self) -> String {
+        match &self.state {
+            PullRequestStatus::Open => self.title.to_owned(),
+            PullRequestStatus::Closed => format!("~~{}~~", &self.title.trim())
+        }
     }
 
     pub fn body(&self) -> &str {

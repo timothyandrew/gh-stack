@@ -8,7 +8,7 @@ use crate::api::search::PullRequest;
 
 fn process(row: String) -> String {
     // TODO: Make this configurable
-    let regex = Regex::new(r"\[HEAP-\d+\]").unwrap();
+    let regex = Regex::new(r"\[HEAP-\d+\]\s*").unwrap();
     regex.replace_all(&row, "").into_owned()
 }
 
