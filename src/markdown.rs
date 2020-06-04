@@ -18,6 +18,7 @@ pub fn build_table(graph: Graph<Rc<PullRequest>, usize>, title: &str) -> String 
     out.push_str("| PR | Title |  Merges Into  |\n");
     out.push_str("|:--:|:------|:-------------:|\n");
 
+    // TODO: Use graph::log to simplify this
     let roots: Vec<_> = graph.externals(Direction::Incoming).collect();
 
     for root in roots {

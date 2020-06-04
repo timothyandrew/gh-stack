@@ -35,13 +35,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let env: HashMap<String, String> = env::vars().collect();
     let args: Vec<String> = env::args().collect();
 
-    if args.len() > 3 {
-        println!("usage: gh-stack <pattern> <prelude_filename>");
+    if args.len() > 4 {
+        println!("usage: gh-stack <command=save|log> <pattern> <prelude_filename?>");
         process::exit(1);
     }
 
-    let pattern = &args[1];
-    let prelude = args.get(2);
+    let command = &args[1][..];
+    let pattern = &args[2];
+    let prelude = args.get(3);
 
     let token = env
         .get("GHSTACK_OAUTH_TOKEN")
@@ -52,22 +53,40 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let prs = api::search::fetch_pull_requests_matching(&pattern, &credentials).await?;
     let prs = prs.into_iter().map(|pr| Rc::new(pr)).collect();
     let tree = graph::build(&prs);
-    let table = markdown::build_table(tree, pattern);
 
-    let output = match prelude {
-        Some(prelude) =>  build_final_output(prelude, &table),
-        None => table
+    match command {
+        "github" => {
+            let table = markdown::build_table(tree, pattern);
+
+            let output = match prelude {
+                Some(prelude) =>  build_final_output(prelude, &table),
+                None => table
+            };
+
+            for pr in prs.iter() {
+                println!("{}: {}", pr.number(), pr.title());
+            }
+
+            let response = read_cli_input("Going to update these PRs ☝️ (y/n): ");
+            match &response[..] {
+                "y" => persist::persist(&prs, &output, &credentials).await?,
+                _ => std::process::exit(1),
+            }
+        }
+
+        "log" => {
+            let log = graph::log(&tree);
+            for (pr, maybe_parent) in log {
+                match maybe_parent {
+                    Some(parent) => println!("{} → {}", pr.head(), parent.head()),
+                    None => println!("{} → N/A", pr.head())
+                }
+            }
+        }
+
+        _ => { panic!("Invalid command!") }
     };
 
-    for pr in prs.iter() {
-        println!("{}: {}", pr.number(), pr.title());
-    }
-
-    let response = read_cli_input("Going to update these PRs ☝️ (y/n): ");
-    match &response[..] {
-        "y" => persist::persist(&prs, &output, &credentials).await?,
-        _ => std::process::exit(1),
-    }
 
     println!("Done!");
 
@@ -80,6 +99,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     - [x] Create markdown table
     - [x] Persist table back to Github
     - [x] Accept a prelude via STDIN
+    - [x] Log a textual representation of the graph
     - [ ] Panic on non-200s
     */
 }
