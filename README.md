@@ -13,7 +13,7 @@ I use this tool to help managed stacked pull requests on Github, which are notor
 - https://stackoverflow.com/questions/26619478/are-dependent-pull-requests-in-github-possible
 - https://gist.github.com/Jlevyd15/66743bab4982838932dda4f13f2bd02a
 
-This tool assumes that all PRs in a single "stack" all have a unique identifier in their title (I typically use a Jira ticket number for this). It then looks for all PRs containing this containing this identifier and builds a dependency graph in memory. This can technically support a "branched stack" instead of a single chain, but I haven't really tried the latter style (which seems much more complex).
+This tool assumes that all PRs in a single "stack" all have a unique identifier in their title (I typically use a Jira ticket number for this). It then looks for all PRs containing this containing this identifier and builds a dependency graph in memory. This can technically support a "branched stack" instead of a single chain, but I haven't really tried the latter style. Note that the `gh-stack rebase` command will definitely _not_ work with the branched style.
 
 With this graph built up, the tool can:
 
