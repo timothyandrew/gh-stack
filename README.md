@@ -4,6 +4,7 @@
 - [Strategy](#strategy)
   - [Feature Changes](#feature-changes)
   - [Feature Complete & Merged](#feature-complete--merged)
+- [Disclaimer](#disclaimer)
 
 ---
 
@@ -87,3 +88,11 @@ Once the script executes a single step, we're left with:
 And once the script is done:
 
 ![](img/complete-3.png)
+
+## Disclaimer
+
+Use at your own risk (and make sure your git repository is backed up), especially because:
+
+- This tool works for my specific use case, but has _not_ been extensively tested.
+- I've been writing Rust for all of 3 weeks at this point.
+- The script that `gh-stack rebase` emits attempts to force-push when executed.
