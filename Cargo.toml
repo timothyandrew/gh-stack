@@ -2,7 +2,13 @@
 name = "gh-stack"
 version = "0.1.0"
 authors = ["Timothy Andrew <mail@timothyandrew.net>"]
+license = "MIT"
+repository = "https://github.com/timothyandrew/gh-stack"
+readme = "README.md"
 edition = "2018"
+description = "Manage stacked PR workflows on Github"
+keywords = ["github", "code-review", "stacked-pr"]
+categories = ["command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
