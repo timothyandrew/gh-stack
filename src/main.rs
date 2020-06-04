@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use std::env;
 use std::error::Error;
 use std::process;
+use std::io::{self, Write};
 use std::rc::Rc;
+use std::fs;
 
 use gh_stack::Credentials;
 use gh_stack::{api, graph, markdown, persist};
-
-use std::io::{self, Write};
 
 pub fn read_cli_input(message: &str) -> String {
     print!("{}", message);
@@ -19,17 +19,30 @@ pub fn read_cli_input(message: &str) -> String {
     buf.trim().to_owned()
 }
 
+fn build_final_output(prelude_path: &str, tail: &str) -> String {
+    let prelude = fs::read_to_string(prelude_path).unwrap();
+    let mut out = String::new();
+
+    out.push_str(&prelude);
+    out.push_str("\n");
+    out.push_str(&tail);
+
+    out
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let env: HashMap<String, String> = env::vars().collect();
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 2 {
-        println!("usage: gh-stack <pattern>");
+    if args.len() > 3 {
+        println!("usage: gh-stack <pattern> <prelude_filename>");
         process::exit(1);
     }
 
-    let pattern = args.last().unwrap();
+    let pattern = &args[1];
+    let prelude = args.get(2);
+
     let token = env
         .get("GHSTACK_OAUTH_TOKEN")
         .expect("You didn't pass `GHSTACK_OAUTH_TOKEN`");
@@ -41,17 +54,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let tree = graph::build(&prs);
     let table = markdown::build_table(tree, pattern);
 
+    let output = match prelude {
+        Some(prelude) =>  build_final_output(prelude, &table),
+        None => table
+    };
+
     for pr in prs.iter() {
         println!("{}: {}", pr.number(), pr.title());
     }
 
     let response = read_cli_input("Going to update these PRs ☝️ (y/n): ");
     match &response[..] {
-        "y" => persist::persist(&prs, &table, &credentials).await?,
+        "y" => persist::persist(&prs, &output, &credentials).await?,
         _ => std::process::exit(1),
     }
-
-    persist::persist(&prs, &table, &credentials).await?;
 
     println!("Done!");
 
@@ -63,6 +79,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     - [x] Construct graph
     - [x] Create markdown table
     - [x] Persist table back to Github
+    - [x] Accept a prelude via STDIN
     - [ ] Panic on non-200s
     */
 }
