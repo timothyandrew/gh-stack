@@ -6,6 +6,8 @@ use std::collections::HashMap;
 
 use crate::api::search::PullRequest;
 
+pub type FlatDep = Vec<(Rc<PullRequest>, Option<Rc<PullRequest>>)>;
+
 pub fn build(prs: &Vec<Rc<PullRequest>>) -> Graph<Rc<PullRequest>, usize> {
     let mut tree = Graph::<Rc<PullRequest>, usize>::new();
     let heads = prs.iter().map(|pr| pr.head());
@@ -23,7 +25,7 @@ pub fn build(prs: &Vec<Rc<PullRequest>>) -> Graph<Rc<PullRequest>, usize> {
 }
 
 /// Return a flattened list of graph nodes as tuples; each tuple is `(node, node's parent [if exists])`.
-pub fn log(graph: &Graph<Rc<PullRequest>, usize>) -> Vec<(Rc<PullRequest>, Option<Rc<PullRequest>>)> {
+pub fn log(graph: &Graph<Rc<PullRequest>, usize>) -> FlatDep  {
     let roots: Vec<_> = graph.externals(Direction::Incoming).collect();
     let mut out = Vec::new();
 

@@ -2,6 +2,7 @@ pub mod api;
 pub mod graph;
 pub mod markdown;
 pub mod persist;
+pub mod git;
 
 pub struct Credentials {
     // Personal access token

@@ -7,7 +7,7 @@ use std::rc::Rc;
 use std::fs;
 
 use gh_stack::Credentials;
-use gh_stack::{api, graph, markdown, persist};
+use gh_stack::{api, graph, markdown, persist, git};
 
 pub fn read_cli_input(message: &str) -> String {
     print!("{}", message);
@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 4 {
-        println!("usage: gh-stack <command=save|log> <pattern> <prelude_filename?>");
+        println!("usage: gh-stack <command=save|log|rebase> <pattern> <prelude_filename?>");
         process::exit(1);
     }
 
@@ -67,11 +67,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 println!("{}: {}", pr.number(), pr.title());
             }
 
+
             let response = read_cli_input("Going to update these PRs ☝️ (y/n): ");
             match &response[..] {
                 "y" => persist::persist(&prs, &output, &credentials).await?,
                 _ => std::process::exit(1),
             }
+
+            println!("Done!");
+        }
+
+        "rebase" => {
+            let deps = graph::log(&tree);
+            let script = git::generate_rebase_script(deps);
+            println!("{}", script);
         }
 
         "log" => {
@@ -86,9 +95,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         _ => { panic!("Invalid command!") }
     };
-
-
-    println!("Done!");
 
     Ok(())
     /*

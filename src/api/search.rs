@@ -17,7 +17,7 @@ pub struct PullRequestRef {
     sha: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum PullRequestStatus {
     #[serde(rename = "open")]
     Open,
@@ -59,6 +59,10 @@ impl PullRequest {
             PullRequestStatus::Open => self.title.to_owned(),
             PullRequestStatus::Closed => format!("~~{}~~", &self.title.trim())
         }
+    }
+
+    pub fn state(&self) -> &PullRequestStatus {
+        &self.state
     }
 
     pub fn body(&self) -> &str {
