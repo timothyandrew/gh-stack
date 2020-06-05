@@ -74,7 +74,7 @@ The script completes execution, and we now have this final state with the entire
 
 ### Feature Complete & Merged
 
-In the second case, let's assume that "feature part 2" is done and has been merged to `develop`:
+In the second case, let's assume that "feature part 1" is done and has been merged to `develop`:
 
 ![](/img/complete-1.png)
 
