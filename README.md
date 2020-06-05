@@ -1,4 +1,4 @@
-# gh-stack ![Check if compilation works; no tests yet!](https://api.travis-ci.org/timothyandrew/gh-stack.svg?branch=master&status=passed)
+# gh-stack [![Check if compilation works; no tests yet!](https://api.travis-ci.org/timothyandrew/gh-stack.svg?branch=master&status=passed)](https://travis-ci.org/timothyandrew/gh-stack)
 
 - [Usage](#usage)
 - [Strategy](#strategy)
