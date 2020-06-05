@@ -1,14 +1,14 @@
 use petgraph::visit::Bfs;
 use petgraph::visit::EdgeRef;
 use petgraph::{Direction, Graph};
-use std::rc::Rc;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::api::search::PullRequest;
 
 pub type FlatDep = Vec<(Rc<PullRequest>, Option<Rc<PullRequest>>)>;
 
-pub fn build(prs: &Vec<Rc<PullRequest>>) -> Graph<Rc<PullRequest>, usize> {
+pub fn build(prs: &[Rc<PullRequest>]) -> Graph<Rc<PullRequest>, usize> {
     let mut tree = Graph::<Rc<PullRequest>, usize>::new();
     let heads = prs.iter().map(|pr| pr.head());
     let handles: Vec<_> = prs.iter().map(|pr| tree.add_node(pr.clone())).collect();
@@ -25,7 +25,7 @@ pub fn build(prs: &Vec<Rc<PullRequest>>) -> Graph<Rc<PullRequest>, usize> {
 }
 
 /// Return a flattened list of graph nodes as tuples; each tuple is `(node, node's parent [if exists])`.
-pub fn log(graph: &Graph<Rc<PullRequest>, usize>) -> FlatDep  {
+pub fn log(graph: &Graph<Rc<PullRequest>, usize>) -> FlatDep {
     let roots: Vec<_> = graph.externals(Direction::Incoming).collect();
     let mut out = Vec::new();
 

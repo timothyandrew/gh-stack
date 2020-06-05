@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
-use std::process;
-use std::io::{self, Write};
-use std::rc::Rc;
 use std::fs;
+use std::io::{self, Write};
+use std::process;
+use std::rc::Rc;
 
+use gh_stack::api::search::PullRequest;
 use gh_stack::Credentials;
-use gh_stack::{api, graph, markdown, persist, git};
+use gh_stack::{api, git, graph, markdown, persist};
 
 pub fn read_cli_input(message: &str) -> String {
     print!("{}", message);
@@ -51,7 +52,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let credentials = Credentials::new(token);
 
     let prs = api::search::fetch_pull_requests_matching(&pattern, &credentials).await?;
-    let prs = prs.into_iter().map(|pr| Rc::new(pr)).collect();
+    let prs = prs
+        .into_iter()
+        .map(Rc::new)
+        .collect::<Vec<Rc<PullRequest>>>();
     let tree = graph::build(&prs);
 
     match command {
@@ -59,14 +63,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let table = markdown::build_table(tree, pattern);
 
             let output = match prelude {
-                Some(prelude) =>  build_final_output(prelude, &table),
-                None => table
+                Some(prelude) => build_final_output(prelude, &table),
+                None => table,
             };
 
             for pr in prs.iter() {
                 println!("{}: {}", pr.number(), pr.title());
             }
-
 
             let response = read_cli_input("Going to update these PRs ☝️ (y/n): ");
             match &response[..] {
@@ -88,12 +91,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
             for (pr, maybe_parent) in log {
                 match maybe_parent {
                     Some(parent) => println!("{} → {}", pr.head(), parent.head()),
-                    None => println!("{} → N/A", pr.head())
+                    None => println!("{} → N/A", pr.head()),
                 }
             }
         }
 
-        _ => { panic!("Invalid command!") }
+        _ => panic!("Invalid command!"),
     };
 
     Ok(())

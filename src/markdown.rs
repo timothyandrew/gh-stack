@@ -32,7 +32,7 @@ pub fn build_table(graph: Graph<Rc<PullRequest>, usize>, title: &str) -> String 
                     "|#{}|{}|#{}|\n",
                     node.number(),
                     node.title(),
-                    graph[parent.source().clone()].number()
+                    graph[parent.source()].number()
                 ),
                 None => format!("|#{}|{}|**N/A**|\n", node.number(), node.title()),
             };

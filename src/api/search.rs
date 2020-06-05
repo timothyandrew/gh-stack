@@ -22,7 +22,7 @@ pub enum PullRequestStatus {
     #[serde(rename = "open")]
     Open,
     #[serde(rename = "closed")]
-    Closed
+    Closed,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -34,7 +34,7 @@ pub struct PullRequest {
     title: String,
     url: String,
     body: String,
-    state: PullRequestStatus
+    state: PullRequestStatus,
 }
 
 impl PullRequest {
@@ -57,7 +57,7 @@ impl PullRequest {
     pub fn title(&self) -> String {
         match &self.state {
             PullRequestStatus::Open => self.title.to_owned(),
-            PullRequestStatus::Closed => format!("~~{}~~", &self.title.trim())
+            PullRequestStatus::Closed => format!("~~{}~~", &self.title.trim()),
         }
     }
 

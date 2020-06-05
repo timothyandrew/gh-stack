@@ -29,7 +29,7 @@ fn safe_replace(body: &str, table: &str) -> String {
 }
 
 pub async fn persist(
-    prs: &Vec<Rc<PullRequest>>,
+    prs: &[Rc<PullRequest>],
     table: &str,
     c: &Credentials,
 ) -> Result<(), Box<dyn Error>> {
