@@ -68,6 +68,13 @@ impl PullRequest {
     pub fn body(&self) -> &str {
         &self.body
     }
+
+    pub fn note(&self) -> &str {
+        match &self.state {
+            PullRequestStatus::Open => "N/A",
+            PullRequestStatus::Closed => "Merged"
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]

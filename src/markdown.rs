@@ -34,7 +34,7 @@ pub fn build_table(graph: Graph<Rc<PullRequest>, usize>, title: &str) -> String 
                     node.title(),
                     graph[parent.source()].number()
                 ),
-                None => format!("|#{}|{}|**N/A**|\n", node.number(), node.title()),
+                None => format!("|#{}|{}|**{}**|\n", node.number(), node.title(), node.note()),
             };
 
             out.push_str(&process(row));
