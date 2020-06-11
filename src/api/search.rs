@@ -72,7 +72,7 @@ impl PullRequest {
     pub fn note(&self) -> &str {
         match &self.state {
             PullRequestStatus::Open => "N/A",
-            PullRequestStatus::Closed => "Merged"
+            PullRequestStatus::Closed => "Merged",
         }
     }
 }

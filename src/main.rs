@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     match command {
         "github" => {
-            let table = markdown::build_table(tree, pattern);
+            let table = markdown::build_table(graph::log(&tree), pattern);
 
             let output = match prelude {
                 Some(prelude) => build_final_output(prelude, &table),

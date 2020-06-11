@@ -1,10 +1,11 @@
-use petgraph::visit::Bfs;
-use petgraph::visit::EdgeRef;
-use petgraph::{Direction, Graph};
-use regex::Regex;
-use std::rc::Rc;
 
-use crate::api::search::PullRequest;
+
+
+use regex::Regex;
+
+
+use crate::api::search::{PullRequestStatus};
+use crate::graph::FlatDep;
 
 fn process(row: String) -> String {
     // TODO: Make this configurable
@@ -12,33 +13,37 @@ fn process(row: String) -> String {
     regex.replace_all(&row, "").into_owned()
 }
 
-pub fn build_table(graph: Graph<Rc<PullRequest>, usize>, title: &str) -> String {
+pub fn build_table(deps: FlatDep, title: &str) -> String {
+    let is_complete = deps
+        .iter()
+        .all(|(node, _)| node.state() == &PullRequestStatus::Closed);
+
     let mut out = String::new();
-    out.push_str(&format!("### Stacked PR Chain: {}\n", title));
+    if is_complete {
+        out.push_str(&format!("### ✅ Stacked PR Chain: {}\n", title));
+    } else {
+        out.push_str(&format!("### Stacked PR Chain: {}\n", title));
+    }
     out.push_str("| PR | Title |  Merges Into  |\n");
     out.push_str("|:--:|:------|:-------------:|\n");
 
-    // TODO: Use graph::log to simplify this
-    let roots: Vec<_> = graph.externals(Direction::Incoming).collect();
+    for (node, parent) in deps {
+        let row = match parent {
+            Some(parent) => format!(
+                "|#{}|{}|#{}|\n",
+                node.number(),
+                node.title(),
+                parent.number()
+            ),
+            None => format!(
+                "|#{}|{}|**{}**|\n",
+                node.number(),
+                node.title(),
+                node.note()
+            ),
+        };
 
-    for root in roots {
-        let mut bfs = Bfs::new(&graph, root);
-        while let Some(node) = bfs.next(&graph) {
-            let parent = graph.edges_directed(node, Direction::Incoming).next();
-            let node: Rc<PullRequest> = graph[node].clone();
-
-            let row = match parent {
-                Some(parent) => format!(
-                    "|#{}|{}|#{}|\n",
-                    node.number(),
-                    node.title(),
-                    graph[parent.source()].number()
-                ),
-                None => format!("|#{}|{}|**{}**|\n", node.number(), node.title(), node.note()),
-            };
-
-            out.push_str(&process(row));
-        }
+        out.push_str(&process(row));
     }
 
     out
