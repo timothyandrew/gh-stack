@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use git2::Repository;
+use std::collections::HashMap;
 use std::env;
 use std::error::Error;
 use std::fs;

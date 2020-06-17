@@ -1,10 +1,6 @@
-
-
-
 use regex::Regex;
 
-
-use crate::api::search::{PullRequestStatus};
+use crate::api::search::PullRequestStatus;
 use crate::graph::FlatDep;
 
 fn process(row: String) -> String {

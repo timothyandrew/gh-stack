@@ -1,11 +1,14 @@
 use crate::api::search::PullRequestStatus;
 use crate::graph::FlatDep;
-use std::error::Error;
-use git2::{Cred, ObjectType, Repository, Index, Sort, CherrypickOptions, Remote, Commit, PushOptions, RemoteCallbacks};
-use git2::build::CheckoutBuilder;
-use tokio::process::Command;
 use dialoguer::Input;
-use std::env;
+use git2::build::CheckoutBuilder;
+use git2::{
+    CherrypickOptions,
+    Repository, Sort,
+};
+
+use std::error::Error;
+use tokio::process::Command;
 
 fn remote_ref(remote: &str, git_ref: &str) -> String {
     format!("{}/{}", remote, git_ref)
@@ -14,10 +17,13 @@ fn remote_ref(remote: &str, git_ref: &str) -> String {
 fn loop_until_confirm(prompt: &str) {
     let prompt = format!("{} Type 'yes' to continue", prompt);
     loop {
-        let result = Input::<String>::new().with_prompt(&prompt).interact().unwrap();
+        let result = Input::<String>::new()
+            .with_prompt(&prompt)
+            .interact()
+            .unwrap();
         match &result[..] {
             "yes" => return,
-            _ => continue
+            _ => continue,
         }
     }
 }
@@ -58,7 +64,10 @@ pub fn generate_rebase_script(deps: FlatDep) -> String {
         out.push_str("\n# -------------- #\n\n");
 
         out.push_str(&format!("export TO=\"{}\"\n", remote_ref("heap", &to)));
-        out.push_str(&format!("export FROM=\"{}\"\n\n", remote_ref("heap", from.head())));
+        out.push_str(&format!(
+            "export FROM=\"{}\"\n\n",
+            remote_ref("heap", from.head())
+        ));
 
         out.push_str("git checkout \"$TO\"\n");
         out.push_str("git cherry-pick \"$PREBASE\"..\"$FROM\"\n");
@@ -69,12 +78,16 @@ pub fn generate_rebase_script(deps: FlatDep) -> String {
     out
 }
 
-pub async fn perform_rebase(deps: FlatDep, repo: &Repository, remote: &str) -> Result<(), Box<dyn Error>> {
+pub async fn perform_rebase(
+    deps: FlatDep,
+    repo: &Repository,
+    remote: &str,
+) -> Result<(), Box<dyn Error>> {
     let deps = deps
         .iter()
         .filter(|(dep, _)| *dep.state() == PullRequestStatus::Open)
         .collect::<Vec<_>>();
-    
+
     let (pr, _) = deps[0];
 
     let base = remote_ref(remote, pr.base());
@@ -96,7 +109,6 @@ pub async fn perform_rebase(deps: FlatDep, repo: &Repository, remote: &str) -> R
     for (pr, _) in deps {
         println!("Working on PR: {:?}", pr.head());
 
-
         let from = repo.revparse_single(&pr.head()).unwrap();
         let from = from.as_commit().unwrap();
 
@@ -110,7 +122,9 @@ pub async fn perform_rebase(deps: FlatDep, repo: &Repository, remote: &str) -> R
         // TODO: Skip if remote/<branch> is the same SHA as <branch>
         for from in walk {
             let from = repo.find_commit(from.unwrap()).unwrap();
-            let to = repo.find_commit(repo.head().unwrap().target().unwrap()).unwrap();
+            let to = repo
+                .find_commit(repo.head().unwrap().target().unwrap())
+                .unwrap();
 
             if from.parent_count() > 1 {
                 panic!("Exiting: I don't know how to deal with merge commits correctly.");
@@ -120,7 +134,7 @@ pub async fn perform_rebase(deps: FlatDep, repo: &Repository, remote: &str) -> R
             cb.allow_conflicts(true);
             let mut opts = CherrypickOptions::new();
             opts.checkout_builder(cb);
-            
+
             println!("Cherry-picking: {:?}", from);
             repo.cherrypick(&from, Some(&mut opts)).unwrap();
 
@@ -131,21 +145,31 @@ pub async fn perform_rebase(deps: FlatDep, repo: &Repository, remote: &str) -> R
                 loop_until_confirm(prompt);
                 index = repo.index().unwrap();
                 index.read(true).unwrap();
-            } 
+            }
 
             let tree = index.write_tree_to(&repo).unwrap();
             let tree = repo.find_tree(tree).unwrap();
 
             let signature = repo.signature().unwrap();
-            let commit = repo.commit(None, &signature, &signature, &from.message().unwrap(), &tree, &[&to]).unwrap();
+            let commit = repo
+                .commit(
+                    None,
+                    &signature,
+                    &signature,
+                    &from.message().unwrap(),
+                    &tree,
+                    &[&to],
+                )
+                .unwrap();
             let commit = repo.find_commit(commit).unwrap();
 
             let mut cb = CheckoutBuilder::new();
             cb.force();
-            repo.checkout_tree(&commit.as_object(), Some(&mut cb)).unwrap();
+            repo.checkout_tree(&commit.as_object(), Some(&mut cb))
+                .unwrap();
             repo.set_head_detached(commit.id()).unwrap();
 
-            // "Complete" the cherry-pick. There is likely a better way to do 
+            // "Complete" the cherry-pick. There is likely a better way to do
             // this that I haven't found so far.
             repo.cleanup_state().unwrap();
         }
@@ -156,13 +180,14 @@ pub async fn perform_rebase(deps: FlatDep, repo: &Repository, remote: &str) -> R
         repo.branch(pr.head(), &head, true).unwrap();
 
         // Use remote branch as boundary for next cherry-pick
-        let from = repo.revparse_single(&remote_ref(remote, pr.head())).unwrap();
+        let from = repo
+            .revparse_single(&remote_ref(remote, pr.head()))
+            .unwrap();
         let from = from.as_commit().unwrap();
         stop_cherry_pick_at = from.id();
 
         push_refspecs.push(format!("refs/heads/{}:refs/heads/{}", pr.head(), pr.head()));
     }
-
 
     let repo_dir = repo.workdir().unwrap().to_str().unwrap();
 
