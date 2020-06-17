@@ -13,7 +13,8 @@ pub struct SearchItem {
 #[derive(Deserialize, Debug, Clone)]
 pub struct PullRequestRef {
     label: String,
-    r#ref: String,
+    #[serde(rename = "ref")]
+    gitref: String,
     sha: String,
 }
 
@@ -39,11 +40,11 @@ pub struct PullRequest {
 
 impl PullRequest {
     pub fn head(&self) -> &str {
-        &self.head.label
+        &self.head.gitref
     }
 
     pub fn base(&self) -> &str {
-        &self.base.label
+        &self.base.gitref
     }
 
     pub fn url(&self) -> &str {

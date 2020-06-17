@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use git2::Repository;
 use std::env;
 use std::error::Error;
 use std::fs;
@@ -86,6 +87,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
             println!("{}", script);
         }
 
+        "autorebase" => {
+            let deps = graph::log(&tree);
+            let repo = Repository::open(prelude.unwrap()).unwrap();
+            // TODO: Make this configurable
+            let remote = repo.find_remote("heap").unwrap();
+            git::perform_rebase(deps, &repo, remote.name().unwrap()).await?;
+            println!("All done!");
+        }
+
         "log" => {
             let log = graph::log(&tree);
             for (pr, maybe_parent) in log {
@@ -109,6 +119,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     - [x] Persist table back to Github
     - [x] Accept a prelude via STDIN
     - [x] Log a textual representation of the graph
+    - [x] Automate rebase
+    - [ ] Build status icons
     - [ ] Panic on non-200s
     */
 }

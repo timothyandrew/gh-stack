@@ -25,6 +25,7 @@ pub fn build(prs: &[Rc<PullRequest>]) -> Graph<Rc<PullRequest>, usize> {
 }
 
 /// Return a flattened list of graph nodes as tuples; each tuple is `(node, node's parent [if exists])`.
+/// TODO: Panic if this isn't a single flat list of dependencies
 pub fn log(graph: &Graph<Rc<PullRequest>, usize>) -> FlatDep {
     let roots: Vec<_> = graph.externals(Direction::Incoming).collect();
     let mut out = Vec::new();
