@@ -23,6 +23,10 @@ With this graph built up, the tool can:
 - Log a simple list of all PRs in the stack (+ dependencies) to stdout.
 - Automatically update the stack + push after making local changes.
 
+Some caveats:
+
+- The `autorebase` command is not entirely idempotent in cases where it doesn't complete fully. In particular, if all local branches are updated but the final push doesn't go through, you can't run the command again without performing a (manual) reset. This happens because the command relies on remote tracking branches as signposts (this is true at the moment, but it's something of an artifical limitation - there's no reason we can't use a custom signpost of some kind to get around this) to make sure we don't cherry-pick too far.
+
 ## Usage
 
 ```bash

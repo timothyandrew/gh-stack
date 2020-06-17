@@ -5,6 +5,8 @@ use git2::build::CheckoutBuilder;
 use git2::{
     CherrypickOptions,
     Repository, Sort,
+    Revwalk, Oid, Commit,
+    Index
 };
 
 use std::error::Error;
@@ -28,7 +30,7 @@ fn loop_until_confirm(prompt: &str) {
     }
 }
 
-/// or all open pull requests in the graph, generate a series of commands
+/// For all open pull requests in the graph, generate a series of commands
 /// (force-pushes) that will rebase the entire stack. The "PREBASE" variable
 /// is a base for the first branch in the stack (essentially a "stop cherry-picking
 /// here" marker), and is required because of our squash-merge workflow.
@@ -78,6 +80,87 @@ pub fn generate_rebase_script(deps: FlatDep) -> String {
     out
 }
 
+fn oid_to_commit(repo: &Repository, oid: Oid) -> Commit {
+    repo.find_commit(oid).unwrap()
+}
+
+fn head_commit(repo: &Repository) -> Commit {
+    repo.find_commit(repo.head().unwrap().target().unwrap()).unwrap()
+}
+
+fn checkout_commit(repo: &Repository, commit: &Commit, options: Option<&mut CheckoutBuilder>) {
+    repo.checkout_tree(&commit.as_object(), options).unwrap();
+    repo.set_head_detached(commit.id()).unwrap();
+}
+
+fn rev_to_commit<'a>(repo: &'a Repository, rev: &str) -> Commit<'a> {
+    let commit = repo.revparse_single(rev).unwrap();
+    let commit = commit.into_commit().unwrap();
+    commit
+}
+
+/// Commit and checkout `index`
+fn create_commit<'a>(repo: &'a Repository, index: &mut Index, message: &str) -> Commit<'a> {
+    let tree = index.write_tree_to(&repo).unwrap();
+    let tree = repo.find_tree(tree).unwrap();
+
+    let signature = repo.signature().unwrap();
+    let commit = repo
+        .commit(
+            None,
+            &signature,
+            &signature,
+            message,
+            &tree,
+            &[&head_commit(repo)]
+        )
+        .unwrap();
+
+    let commit = oid_to_commit(&repo, commit);
+
+    let mut cb = CheckoutBuilder::new();
+    cb.force();
+
+    checkout_commit(&repo, &commit, Some(&mut cb));
+
+    // "Complete" the cherry-pick. There is likely a better way to do
+    // this that I haven't found so far.
+    repo.cleanup_state().unwrap();
+
+    commit
+}
+
+fn cherry_pick_range(repo: &Repository, walk: &mut Revwalk) {
+    for from in walk {
+        let from = oid_to_commit(&repo, from.unwrap());
+
+        if from.parent_count() > 1 {
+            panic!("Exiting: I don't know how to deal with merge commits correctly.");
+        }
+
+        let mut cb = CheckoutBuilder::new();
+        cb.allow_conflicts(true);
+        let mut opts = CherrypickOptions::new();
+        opts.checkout_builder(cb);
+
+        println!("Cherry-picking: {:?}", from);
+        repo.cherrypick(&from, Some(&mut opts)).unwrap();
+
+        let mut index = repo.index().unwrap();
+
+        if index.has_conflicts() {
+            let prompt = "Conflicts! Resolve manually and `git add` each one (don't run any `git cherry-pick` commands, though).";
+            loop_until_confirm(prompt);
+
+            // Reload index from disk
+            index = repo.index().unwrap();
+            index.read(true).unwrap();
+        }
+
+        create_commit(&repo, &mut index, from.message().unwrap());
+    }
+}
+
 pub async fn perform_rebase(
     deps: FlatDep,
     repo: &Repository,
@@ -90,27 +173,19 @@ pub async fn perform_rebase(
 
     let (pr, _) = deps[0];
 
-    let base = remote_ref(remote, pr.base());
-    let base = repo.revparse_single(&base).unwrap();
-    let base = base.as_commit().unwrap();
-
-    let head = pr.head();
-    let head = repo.revparse_single(&head).unwrap();
-    let head = head.as_commit().unwrap();
-
+    let base = rev_to_commit(&repo, &remote_ref(remote, pr.base()));
+    let head = rev_to_commit(&repo, pr.head());
     let mut stop_cherry_pick_at = repo.merge_base(base.id(), head.id()).unwrap();
 
     println!("Checking out {:?}", base);
-    repo.checkout_tree(&base.as_object(), None).unwrap();
-    repo.set_head_detached(base.id()).unwrap();
+    checkout_commit(&repo, &base, None);
 
     let mut push_refspecs = vec![];
 
     for (pr, _) in deps {
-        println!("Working on PR: {:?}", pr.head());
+        println!("\nWorking on PR: {:?}", pr.head());
 
-        let from = repo.revparse_single(&pr.head()).unwrap();
-        let from = from.as_commit().unwrap();
+        let from = rev_to_commit(&repo, pr.head());
 
         let mut walk = repo.revwalk().unwrap();
         walk.set_sorting(Sort::TOPOLOGICAL).unwrap();
@@ -119,74 +194,17 @@ pub async fn perform_rebase(
         walk.hide(stop_cherry_pick_at).unwrap();
 
         // TODO: Simplify by using rebase instead of cherry-pick
-        // TODO: Skip if remote/<branch> is the same SHA as <branch>
-        for from in walk {
-            let from = repo.find_commit(from.unwrap()).unwrap();
-            let to = repo
-                .find_commit(repo.head().unwrap().target().unwrap())
-                .unwrap();
+        // TODO: Skip if remote/<branch> is the same SHA as <branch> (only until the first cherry-pick)
+        cherry_pick_range(&repo, &mut walk);
 
-            if from.parent_count() > 1 {
-                panic!("Exiting: I don't know how to deal with merge commits correctly.");
-            }
+        // Update local branch so it points to the stack we're building now
+        repo.branch(pr.head(), &head_commit(&repo), true).unwrap();
 
-            let mut cb = CheckoutBuilder::new();
-            cb.allow_conflicts(true);
-            let mut opts = CherrypickOptions::new();
-            opts.checkout_builder(cb);
-
-            println!("Cherry-picking: {:?}", from);
-            repo.cherrypick(&from, Some(&mut opts)).unwrap();
-
-            let mut index = repo.index().unwrap();
-
-            if index.has_conflicts() {
-                let prompt = "Conflicts! Resolve manually and `git add` each one (don't run any `git cherry-pick` commands, though).";
-                loop_until_confirm(prompt);
-                index = repo.index().unwrap();
-                index.read(true).unwrap();
-            }
-
-            let tree = index.write_tree_to(&repo).unwrap();
-            let tree = repo.find_tree(tree).unwrap();
-
-            let signature = repo.signature().unwrap();
-            let commit = repo
-                .commit(
-                    None,
-                    &signature,
-                    &signature,
-                    &from.message().unwrap(),
-                    &tree,
-                    &[&to],
-                )
-                .unwrap();
-            let commit = repo.find_commit(commit).unwrap();
-
-            let mut cb = CheckoutBuilder::new();
-            cb.force();
-            repo.checkout_tree(&commit.as_object(), Some(&mut cb))
-                .unwrap();
-            repo.set_head_detached(commit.id()).unwrap();
-
-            // "Complete" the cherry-pick. There is likely a better way to do
-            // this that I haven't found so far.
-            repo.cleanup_state().unwrap();
-        }
-
-        // Update local branch
-        let head = repo.head().unwrap().target().unwrap();
-        let head = repo.find_commit(head).unwrap();
-        repo.branch(pr.head(), &head, true).unwrap();
-
-        // Use remote branch as boundary for next cherry-pick
-        let from = repo
-            .revparse_single(&remote_ref(remote, pr.head()))
-            .unwrap();
-        let from = from.as_commit().unwrap();
+        // Use remote branch as boundary for the next cherry-pick
+        let from = rev_to_commit(&repo, &remote_ref(remote, pr.head()));
         stop_cherry_pick_at = from.id();
 
-        push_refspecs.push(format!("refs/heads/{}:refs/heads/{}", pr.head(), pr.head()));
+        push_refspecs.push(format!("{}:refs/heads/{}", head_commit(&repo).id(), pr.head()));
     }
 
     let repo_dir = repo.workdir().unwrap().to_str().unwrap();
