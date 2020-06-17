@@ -175,7 +175,9 @@ pub async fn perform_rebase(
 
     let base = rev_to_commit(&repo, &remote_ref(remote, pr.base()));
     let head = rev_to_commit(&repo, pr.head());
+
     let mut stop_cherry_pick_at = repo.merge_base(base.id(), head.id()).unwrap();
+    let mut update_local_branches_to = vec![];
 
     println!("Checking out {:?}", base);
     checkout_commit(&repo, &base, None);
@@ -197,8 +199,10 @@ pub async fn perform_rebase(
         // TODO: Skip if remote/<branch> is the same SHA as <branch> (only until the first cherry-pick)
         cherry_pick_range(&repo, &mut walk);
 
-        // Update local branch so it points to the stack we're building now
-        repo.branch(pr.head(), &head_commit(&repo), true).unwrap();
+        // Record the commit (in the new stack) that the local branch should now point to.
+        // Actually perform the switch later on in a batch so we don't leave the repo in
+        // a troubled state if this process is interrupted.
+        update_local_branches_to.push((pr.head(), head_commit(&repo)));
 
         // Use remote branch as boundary for the next cherry-pick
         let from = rev_to_commit(&repo, &remote_ref(remote, pr.head()));
@@ -220,6 +224,12 @@ pub async fn perform_rebase(
     loop_until_confirm("Going to push these refspecs ☝️ ");
 
     command.spawn()?.await?;
+
+    println!("\nUpdating local branches so they point to the new stack.\n");
+    for (branch, target) in update_local_branches_to {
+        println!("  + Branch {} now points to {}", branch, target.id());
+        repo.branch(branch, &target, true).unwrap();
+    }
 
     Ok(())
 }
