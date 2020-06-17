@@ -21,7 +21,7 @@ With this graph built up, the tool can:
 
 - Add a markdown table to the PR description (idempotently) of each PR in the stack describing _all_ PRs in the stack.
 - Log a simple list of all PRs in the stack (+ dependencies) to stdout.
-- Automatically update the stack + push after making local changes (this handles conflicts as well).
+- Automatically update the stack + push after making local changes.
 
 ## Usage
 
@@ -56,9 +56,9 @@ This is a quick summary of the strategy the `autorebase` subcommand uses:
 1. Find the `merge_base` between the local branch of the first PR in the stack and the branch it merges into (usually `develop`). This forms the boundary for the initial cherry-pick.
 2. Check out the commit/ref that the first PR in the stack merges into (usually `develop`). We're going to cherry-pick the entire stack onto this commit.
 3. Cherry-pick all commits from the first PR (stopping at the cherry-pick boundary calculated in 1.) onto `HEAD`.
-4. Move the _local_ branch for the first PR onto `HEAD`.
-5. The _remote_ branch for the first PR becomes the next cherry-pick boundary.
-6. Repeat steps 3-5 until all PRs have been cherry-picked over.
+4. Move the _local_ branch for the first PR so it points at `HEAD`.
+5. The _remote tracking_ branch for the first PR becomes the next cherry-pick boundary.
+6. Repeat steps 3-5 for each subsequent PR until all PRs have been cherry-picked over.
 7. Push all refs at once by passing multiple refspecs to a single invocation of `git push -f`.
 
 ## Disclaimer
