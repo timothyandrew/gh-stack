@@ -135,7 +135,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let identifier = m.value_of("identifier").unwrap();
             let stack = build_pr_stack(identifier, &credentials).await?;
 
-            let repo = m.value_of("repo").unwrap();
+            let repo = m.value_of("repo").expect("The --repo argument is required.");
             let repo = Repository::open(repo)?;
 
             let remote = m.value_of("remote").unwrap_or("origin");

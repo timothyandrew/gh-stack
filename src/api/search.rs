@@ -109,6 +109,8 @@ pub async fn fetch_pull_requests_matching(
         .into_iter()
         .map(|item| item.unwrap());
 
+    println!("{:?}", items);
+
     let responses: Vec<_> = join_all(items.map(|item| item.json::<PullRequest>()))
         .await
         .into_iter()
