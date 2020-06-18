@@ -165,7 +165,7 @@ $ gh-stack rebase 'stack-identifier'
      | |
      | * 5746a83 N - second #1
      | |
-     | * e845ded N - (origin/first) amended first
+     | * e845ded N - (origin/first) first
      |/
      |
      * 8031011 U - (origin/master, master) initial commit
