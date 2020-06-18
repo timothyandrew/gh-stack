@@ -1,13 +1,5 @@
 # gh-stack [![Check if compilation works; no tests yet!](https://api.travis-ci.org/timothyandrew/gh-stack.svg?branch=master&status=passed)](https://travis-ci.org/timothyandrew/gh-stack)
 
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Examples](#examples)
-- [Strategy](#strategy)
-- [Disclaimer](#disclaimer)
-
----
-
 I use this tool to help managed stacked pull requests on Github, which are notoriously difficult to manage manually. Here are a few examples:
 
 - https://unhashable.com/stacked-pull-requests-keeping-github-diffs-small
@@ -20,11 +12,20 @@ This tool assumes that:
 - All PRs in the stack live in a single GitHub repository.
 - All remote branches that these PRs represent have local branches named identically.
 
-WIt then looks for all PRs containing this containing this identifier and builds a dependency graph in memory. This can technically support a "branched stack" instead of a single chain, but I haven't really tried the latter style. With this graph built up, the tool can:
+It then looks for all PRs containing this containing this identifier and builds a dependency graph in memory. This can technically support a "branched stack" instead of a single chain, but I haven't really tried the latter style. With this graph built up, the tool can:
 
 - Add a markdown table to the PR description (idempotently) of each PR in the stack describing _all_ PRs in the stack.
 - Log a simple list of all PRs in the stack (+ dependencies) to stdout.
 - Automatically update the stack + push after making local changes.
+
+---
+
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Examples](#examples)
+- [Strategy](#strategy)
+- [Disclaimer](#disclaimer)
+
 
 ## Installation
 
