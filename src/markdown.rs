@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::fs;
 
 use crate::api::search::PullRequestStatus;
 use crate::graph::FlatDep;
@@ -9,12 +10,19 @@ fn process(row: String) -> String {
     regex.replace_all(&row, "").into_owned()
 }
 
-pub fn build_table(deps: FlatDep, title: &str) -> String {
+pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> String {
     let is_complete = deps
         .iter()
         .all(|(node, _)| node.state() == &PullRequestStatus::Closed);
 
     let mut out = String::new();
+
+    if let Some(prelude_path) = prelude_path {
+        let prelude = fs::read_to_string(prelude_path).unwrap();
+        out.push_str(&prelude);
+        out.push_str("\n");
+    }
+
     if is_complete {
         out.push_str(&format!("### ✅ Stacked PR Chain: {}\n", title));
     } else {

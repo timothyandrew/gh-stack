@@ -1,10 +1,9 @@
 use futures::future::join_all;
 use regex::Regex;
 use std::error::Error;
-use std::rc::Rc;
 
 use crate::api::pull_request;
-use crate::api::search::PullRequest;
+use crate::graph::FlatDep;
 use crate::Credentials;
 
 const SHIELD_OPEN: &str = "<!---GHSTACKOPEN-->";
@@ -29,11 +28,11 @@ fn safe_replace(body: &str, table: &str) -> String {
 }
 
 pub async fn persist(
-    prs: &[Rc<PullRequest>],
+    prs: &FlatDep,
     table: &str,
     c: &Credentials,
 ) -> Result<(), Box<dyn Error>> {
-    let futures = prs.iter().map(|pr| {
+    let futures = prs.iter().map(|(pr, _)| {
         let description = safe_replace(pr.body(), table);
         pull_request::update_description(description, pr.clone(), c)
     });

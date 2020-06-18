@@ -1,6 +1,6 @@
 use crate::api::search::PullRequestStatus;
 use crate::graph::FlatDep;
-use dialoguer::Input;
+use crate::util::loop_until_confirm;
 use git2::build::CheckoutBuilder;
 use git2::{
     CherrypickOptions,
@@ -14,20 +14,6 @@ use tokio::process::Command;
 
 fn remote_ref(remote: &str, git_ref: &str) -> String {
     format!("{}/{}", remote, git_ref)
-}
-
-fn loop_until_confirm(prompt: &str) {
-    let prompt = format!("{} Type 'yes' to continue", prompt);
-    loop {
-        let result = Input::<String>::new()
-            .with_prompt(&prompt)
-            .interact()
-            .unwrap();
-        match &result[..] {
-            "yes" => return,
-            _ => continue,
-        }
-    }
 }
 
 /// For all open pull requests in the graph, generate a series of commands

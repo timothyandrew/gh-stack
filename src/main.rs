@@ -1,113 +1,152 @@
 use git2::Repository;
 use std::collections::HashMap;
 use std::env;
+use console::style;
 use std::error::Error;
-use std::fs;
-use std::io::{self, Write};
-use std::process;
+use clap::{Arg, App, SubCommand, AppSettings};
 use std::rc::Rc;
 
 use gh_stack::api::search::PullRequest;
+use gh_stack::graph::FlatDep;
 use gh_stack::Credentials;
 use gh_stack::{api, git, graph, markdown, persist};
+use gh_stack::util::loop_until_confirm;
 
-pub fn read_cli_input(message: &str) -> String {
-    print!("{}", message);
-    io::stdout().flush().unwrap();
+fn clap<'a, 'b>() -> App<'a, 'b> {
+    let identifier = Arg::with_name("identifier")
+        .index(1)
+        .required(true)
+        .help("All pull requests containing this identifier in their title form a stack");
 
-    let mut buf = String::new();
-    io::stdin().read_line(&mut buf).unwrap();
+    let annotate = SubCommand::with_name("annotate")
+        .about("Annotate the descriptions of all PRs in a stack with metadata about all PRs in the stack")
+        .setting(AppSettings::ArgRequiredElseHelp)
+        .arg(identifier.clone())
+        .arg(Arg::with_name("prelude")
+                .long("prelude")
+                .short("p")
+                .value_name("FILE")
+                .help("Prepend the annotation with the contents of this file"));
 
-    buf.trim().to_owned()
+    let log = SubCommand::with_name("log")
+        .about("Print a list of all pull requests in a stack to STDOUT")
+        .setting(AppSettings::ArgRequiredElseHelp)
+        .arg(identifier.clone());
+
+    let autorebase = SubCommand::with_name("autorebase")
+        .about("Rebuild a stack based on changes to local branches and mirror these changes up to the remote")
+        .arg(Arg::with_name("remote")
+                .long("remote")
+                .short("r")
+                .value_name("REMOTE")
+                .help("Name of the remote to (force-)push the updated stack to (default: `origin`)"))
+        .arg(Arg::with_name("repo")
+                .long("repo")
+                .short("C")
+                .value_name("PATH_TO_REPO")
+                .help("Path to a local copy of the repository"))
+        .setting(AppSettings::ArgRequiredElseHelp)
+        .arg(identifier.clone());
+
+    let rebase = SubCommand::with_name("rebase")
+        .about("Print a bash script to STDOUT that can rebase/update the stack (with a little help)")
+        .setting(AppSettings::ArgRequiredElseHelp)
+        .arg(identifier.clone());
+
+    let app = App::new("gh-stack")
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .setting(AppSettings::DisableVersion)
+        .setting(AppSettings::VersionlessSubcommands)
+        .setting(AppSettings::DisableHelpSubcommand)
+        .subcommand(annotate)
+        .subcommand(log)
+        .subcommand(rebase)
+        .subcommand(autorebase);
+
+    app
 }
 
-fn build_final_output(prelude_path: &str, tail: &str) -> String {
-    let prelude = fs::read_to_string(prelude_path).unwrap();
-    let mut out = String::new();
-
-    out.push_str(&prelude);
-    out.push_str("\n");
-    out.push_str(&tail);
-
-    out
+async fn build_pr_stack(pattern: &str, credentials: &Credentials) -> Result<FlatDep, Box<dyn Error>> {
+    let prs = api::search::fetch_pull_requests_matching(pattern, &credentials).await?;
+    let prs = prs
+        .into_iter()
+        .map(Rc::new)
+        .collect::<Vec<Rc<PullRequest>>>();
+    let graph = graph::build(&prs);
+    let stack = graph::log(&graph);
+    Ok(stack)
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let env: HashMap<String, String> = env::vars().collect();
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() > 4 {
-        println!("usage: gh-stack <command=save|log|rebase> <pattern> <prelude_filename?>");
-        process::exit(1);
-    }
-
-    let command = &args[1][..];
-    let pattern = &args[2];
-    let prelude = args.get(3);
 
     let token = env
         .get("GHSTACK_OAUTH_TOKEN")
         .expect("You didn't pass `GHSTACK_OAUTH_TOKEN`");
 
     let credentials = Credentials::new(token);
+    let matches = clap().get_matches();
 
-    let prs = api::search::fetch_pull_requests_matching(&pattern, &credentials).await?;
-    let prs = prs
-        .into_iter()
-        .map(Rc::new)
-        .collect::<Vec<Rc<PullRequest>>>();
-    let tree = graph::build(&prs);
+    match matches.subcommand() {
+        ("annotate", Some(m)) => {
+            let identifier = m.value_of("identifier").unwrap();
+            let stack = build_pr_stack(identifier, &credentials).await?;
+            let table = markdown::build_table(&stack, identifier, m.value_of("prelude"));
 
-    match command {
-        "github" => {
-            let table = markdown::build_table(graph::log(&tree), pattern);
-
-            let output = match prelude {
-                Some(prelude) => build_final_output(prelude, &table),
-                None => table,
-            };
-
-            for pr in prs.iter() {
+            for (pr, _) in stack.iter() {
                 println!("{}: {}", pr.number(), pr.title());
             }
+            loop_until_confirm("Going to update these PRs ☝️ ");
 
-            let response = read_cli_input("Going to update these PRs ☝️ (y/n): ");
-            match &response[..] {
-                "y" => persist::persist(&prs, &output, &credentials).await?,
-                _ => std::process::exit(1),
-            }
+            persist::persist(&stack, &table, &credentials).await?;
 
             println!("Done!");
         }
 
-        "rebase" => {
-            let deps = graph::log(&tree);
-            let script = git::generate_rebase_script(deps);
-            println!("{}", script);
-        }
+        ("log", Some(m)) => {
+            let identifier = m.value_of("identifier").unwrap();
+            let stack = build_pr_stack(identifier, &credentials).await?;
 
-        "autorebase" => {
-            let deps = graph::log(&tree);
-            let repo = Repository::open(prelude.unwrap()).unwrap();
-            // TODO: Make this configurable
-            let remote = repo.find_remote("heap").unwrap();
-            git::perform_rebase(deps, &repo, remote.name().unwrap()).await?;
-            println!("All done!");
-        }
-
-        "log" => {
-            let log = graph::log(&tree);
-            for (pr, maybe_parent) in log {
+            for (pr, maybe_parent) in stack {
                 match maybe_parent {
-                    Some(parent) => println!("{} → {}", pr.head(), parent.head()),
-                    None => println!("{} → N/A", pr.head()),
+                    Some(parent) => {
+                        let into = style(format!("(Merges into #{})", parent.number())).green();
+                        println!("#{}: {} {}", pr.number(), pr.title(), into);
+                    }
+
+                    None => {
+                        let into = style("(Base)").red();
+                        println!("#{}: {} {}", pr.number(), pr.title(), into);
+                    }
                 }
             }
         }
 
-        _ => panic!("Invalid command!"),
-    };
+        ("rebase", Some(m)) => {
+            let identifier = m.value_of("identifier").unwrap();
+            let stack = build_pr_stack(identifier, &credentials).await?;
+
+            let script = git::generate_rebase_script(stack);
+            println!("{}", script);
+        }
+
+        ("autorebase", Some(m)) => {
+            let identifier = m.value_of("identifier").unwrap();
+            let stack = build_pr_stack(identifier, &credentials).await?;
+
+            let repo = m.value_of("repo").unwrap();
+            let repo = Repository::open(repo)?;
+
+            let remote = m.value_of("remote").unwrap_or("origin");
+            let remote = repo.find_remote(remote).unwrap();
+
+            git::perform_rebase(stack, &repo, remote.name().unwrap()).await?;
+            println!("All done!");
+        }
+
+        (_, _) => panic!("Invalid subcommand.")
+    }
 
     Ok(())
     /*
@@ -120,6 +159,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     - [x] Accept a prelude via STDIN
     - [x] Log a textual representation of the graph
     - [x] Automate rebase
+    - [x] Better CLI args
     - [ ] Build status icons
     - [ ] Panic on non-200s
     */

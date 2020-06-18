@@ -14,10 +14,11 @@ I use this tool to help managed stacked pull requests on Github, which are notor
 
 This tool assumes that:
 
-- All PRs in a single "stack" all have a unique identifier in their title (I typically use a Jira ticket number for this). It then looks for all PRs containing this containing this identifier and builds a dependency graph in memory. This can technically support a "branched stack" instead of a single chain, but I haven't really tried the latter style.
+- All PRs in a single "stack" all have a unique identifier in their title (I typically use a Jira ticket number for this).
+- All PRs in the stack live in a single GitHub repository.
 - All remote branches that these PRs represent have local branches named identically.
 
-With this graph built up, the tool can:
+WIt then looks for all PRs containing this containing this identifier and builds a dependency graph in memory. This can technically support a "branched stack" instead of a single chain, but I haven't really tried the latter style. With this graph built up, the tool can:
 
 - Add a markdown table to the PR description (idempotently) of each PR in the stack describing _all_ PRs in the stack.
 - Log a simple list of all PRs in the stack (+ dependencies) to stdout.
