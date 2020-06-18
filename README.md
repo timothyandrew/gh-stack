@@ -28,7 +28,7 @@ WIt then looks for all PRs containing this containing this identifier and builds
 
 ## Installation
 
-Building from source is the option at the moment:
+Building from source is the only option at the moment:
 
 ```bash
 # Install Rust
