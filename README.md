@@ -1,5 +1,6 @@
 # gh-stack [![Check if compilation works; no tests yet!](https://api.travis-ci.org/timothyandrew/gh-stack.svg?branch=master&status=passed)](https://travis-ci.org/timothyandrew/gh-stack)
 
+- [Installation](#installation)
 - [Usage](#usage)
   - [Examples](#examples)
 - [Strategy](#strategy)
@@ -24,6 +25,21 @@ WIt then looks for all PRs containing this containing this identifier and builds
 - Add a markdown table to the PR description (idempotently) of each PR in the stack describing _all_ PRs in the stack.
 - Log a simple list of all PRs in the stack (+ dependencies) to stdout.
 - Automatically update the stack + push after making local changes.
+
+## Installation
+
+Building from source is the option at the moment:
+
+```bash
+# Install Rust
+$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Configure `PATH`
+$ export PATH="$HOME/.cargo/bin:$PATH"
+
+# Install `gh-stack`
+$ cargo install gh-stack
+```
 
 ## Usage
 
