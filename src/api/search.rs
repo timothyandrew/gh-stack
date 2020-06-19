@@ -18,7 +18,7 @@ pub struct PullRequestRef {
     sha: String,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PullRequestStatus {
     #[serde(rename = "open")]
     Open,

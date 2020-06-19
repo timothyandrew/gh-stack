@@ -32,14 +32,19 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
     out.push_str("|:--:|:------|:-------------:|\n");
 
     for (node, parent) in deps {
-        let row = match parent {
-            Some(parent) => format!(
+        let row = match (node.state(), parent) {
+            (PullRequestStatus::Closed, _) => format!(
+                "|#{}|{}|**Merged**|\n",
+                node.number(),
+                node.title()
+            ),
+            (_, Some(parent)) => format!(
                 "|#{}|{}|#{}|\n",
                 node.number(),
                 node.title(),
                 parent.number()
             ),
-            None => format!(
+            (_, None) => format!(
                 "|#{}|{}|**{}**|\n",
                 node.number(),
                 node.title(),
