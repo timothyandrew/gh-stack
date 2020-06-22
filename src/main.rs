@@ -45,6 +45,11 @@ fn clap<'a, 'b>() -> App<'a, 'b> {
                 .short("C")
                 .value_name("PATH_TO_REPO")
                 .help("Path to a local copy of the repository"))
+        .arg(Arg::with_name("boundary")
+                .long("initial-cherry-pick-boundary")
+                .short("b")
+                .value_name("SHA")
+                .help("Stop the initial cherry-pick at this SHA (exclusive)"))
         .setting(AppSettings::ArgRequiredElseHelp)
         .arg(identifier.clone());
 
@@ -141,7 +146,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let remote = m.value_of("remote").unwrap_or("origin");
             let remote = repo.find_remote(remote).unwrap();
 
-            git::perform_rebase(stack, &repo, remote.name().unwrap()).await?;
+            git::perform_rebase(stack, &repo, remote.name().unwrap(), m.value_of("boundary")).await?;
             println!("All done!");
         }
 

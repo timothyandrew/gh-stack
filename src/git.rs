@@ -151,6 +151,7 @@ pub async fn perform_rebase(
     deps: FlatDep,
     repo: &Repository,
     remote: &str,
+    boundary: Option<&str>
 ) -> Result<(), Box<dyn Error>> {
     let deps = deps
         .iter()
@@ -162,7 +163,10 @@ pub async fn perform_rebase(
     let base = rev_to_commit(&repo, &remote_ref(remote, pr.base()));
     let head = rev_to_commit(&repo, pr.head());
 
-    let mut stop_cherry_pick_at = repo.merge_base(base.id(), head.id()).unwrap();
+    let mut stop_cherry_pick_at = match boundary {
+        Some(rev) => rev_to_commit(&repo, rev).id(),
+        None => repo.merge_base(base.id(), head.id()).unwrap()
+    };
     let mut update_local_branches_to = vec![];
 
     println!("Checking out {:?}", base);

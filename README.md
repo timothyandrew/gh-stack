@@ -227,7 +227,7 @@ $ gh-stack rebase 'stack-identifier'
 
 This is a quick summary of the strategy the `autorebase` subcommand uses:
 
-1. Find the `merge_base` between the local branch of the first PR in the stack and the branch it merges into (usually `develop`). This forms the boundary for the initial cherry-pick.
+1. Find the `merge_base` between the local branch of the first PR in the stack and the branch it merges into (usually `develop`). This forms the boundary for the initial cherry-pick. This is a heuristic and is not suitable for all situations, especially when changes have already been pushed or PRs are merged directly on GitHub. Accept an explicit boundary for the initial cherry-pick to avoid ambiguity here.
 2. Check out the commit/ref that the first PR in the stack merges into (usually `develop`). We're going to cherry-pick the entire stack onto this commit.
 3. Cherry-pick all commits from the first PR (stopping at the cherry-pick boundary calculated in 1.) onto `HEAD`.
 4. Move the _local_ branch for the first PR so it points at `HEAD`.
