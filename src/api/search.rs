@@ -36,6 +36,7 @@ pub struct PullRequest {
     url: String,
     body: String,
     state: PullRequestStatus,
+    draft: bool
 }
 
 impl PullRequest {
@@ -56,9 +57,15 @@ impl PullRequest {
     }
 
     pub fn title(&self) -> String {
+        let title = self.title.trim();
+        let title = match &self.draft {
+            true => format!("*(Draft) {}*", title),
+            false => title.to_owned()
+        };
+
         match &self.state {
-            PullRequestStatus::Open => self.title.to_owned(),
-            PullRequestStatus::Closed => format!("~~{}~~", &self.title.trim()),
+            PullRequestStatus::Open => title,
+            PullRequestStatus::Closed => format!("~~{}~~", title),
         }
     }
 
