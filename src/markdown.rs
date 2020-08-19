@@ -6,7 +6,7 @@ use crate::graph::FlatDep;
 
 fn process(row: String) -> String {
     // TODO: Make this configurable
-    let regex = Regex::new(r"\[HEAP-\d+\]\s*").unwrap();
+    let regex = Regex::new(r"\[[^\]]+\]\s*").unwrap();
     regex.replace_all(&row, "").into_owned()
 }
 
