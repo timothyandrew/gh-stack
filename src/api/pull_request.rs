@@ -12,7 +12,8 @@ pub enum PullRequestReviewState {
     APPROVED,
     PENDING,
     CHANGES_REQUESTED,
-    DISMISSED
+    DISMISSED,
+    COMMENTED
 }
 
 #[derive(Deserialize, Debug, Clone)]

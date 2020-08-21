@@ -37,14 +37,22 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
             PullRequestReviewState::PENDING => "Pending",
             PullRequestReviewState::CHANGES_REQUESTED => "Changes requested",
             PullRequestReviewState::DISMISSED => "Dismissed",
+            PullRequestReviewState::COMMENTED => "Commented"
         };
 
         let row = match (node.state(), parent) {
-            (PullRequestStatus::Closed, _) => format!(
-                "|#{}|{}|{}|**Merged**|\n",
+            (_, None) => format!(
+                "|#{}|{}|{}|{}|\n",
                 node.number(),
                 node.title(),
-                review_state
+                review_state,
+                "Base/Root"
+            ),
+            (PullRequestStatus::Closed, Some(parent)) => format!(
+                "|#{}|{}|**Merged**|#{}|\n",
+                node.number(),
+                node.title(),
+                parent.number()
             ),
             (_, Some(parent)) => format!(
                 "|#{}|{}|{}|#{}|\n",
@@ -52,13 +60,6 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
                 node.title(),
                 review_state,
                 parent.number(),
-            ),
-            (_, None) => format!(
-                "|#{}|{}|{}|{}|\n",
-                node.number(),
-                node.title(),
-                review_state,
-                "Base/Root"
             ),
         };
 
