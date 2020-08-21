@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::fs;
 
-use crate::api::search::PullRequestStatus;
+use crate::api::PullRequestStatus;
 use crate::graph::FlatDep;
 
 fn process(row: String) -> String {

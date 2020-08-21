@@ -6,7 +6,7 @@ use std::error::Error;
 use clap::{Arg, App, SubCommand, AppSettings};
 use std::rc::Rc;
 
-use gh_stack::api::search::PullRequest;
+use gh_stack::api::PullRequest;
 use gh_stack::graph::FlatDep;
 use gh_stack::Credentials;
 use gh_stack::{api, git, graph, markdown, persist};

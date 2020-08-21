@@ -4,7 +4,7 @@ use petgraph::{Direction, Graph};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::api::search::PullRequest;
+use crate::api::PullRequest;
 
 pub type FlatDep = Vec<(Rc<PullRequest>, Option<Rc<PullRequest>>)>;
 

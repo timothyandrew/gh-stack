@@ -1,4 +1,4 @@
-use crate::api::search::PullRequestStatus;
+use crate::api::PullRequestStatus;
 use crate::graph::FlatDep;
 use crate::util::loop_until_confirm;
 use git2::build::CheckoutBuilder;
