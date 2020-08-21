@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::fs;
 
-use crate::api::PullRequestStatus;
+use crate::api::{PullRequestStatus, PullRequestReviewState};
 use crate::graph::FlatDep;
 
 fn process(row: String) -> String {
@@ -28,27 +28,37 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
     } else {
         out.push_str(&format!("### Stacked PR Chain: {}\n", title));
     }
-    out.push_str("| PR | Title |  Merges Into  |\n");
-    out.push_str("|:--:|:------|:-------------:|\n");
+    out.push_str("| PR | Title | Status |  Merges Into  |\n");
+    out.push_str("|:--:|:------|:-------|:-------------:|\n");
 
     for (node, parent) in deps {
+        let review_state = match node.review_state() {
+            PullRequestReviewState::APPROVED => "**Approved**",
+            PullRequestReviewState::PENDING => "Pending",
+            PullRequestReviewState::CHANGES_REQUESTED => "Changes requested",
+            PullRequestReviewState::DISMISSED => "Dismissed",
+        };
+
         let row = match (node.state(), parent) {
             (PullRequestStatus::Closed, _) => format!(
-                "|#{}|{}|**Merged**|\n",
+                "|#{}|{}|{}|**Merged**|\n",
                 node.number(),
-                node.title()
+                node.title(),
+                review_state
             ),
             (_, Some(parent)) => format!(
-                "|#{}|{}|#{}|\n",
+                "|#{}|{}|{}|#{}|\n",
                 node.number(),
                 node.title(),
-                parent.number()
+                review_state,
+                parent.number(),
             ),
             (_, None) => format!(
-                "|#{}|{}|**{}**|\n",
+                "|#{}|{}|{}|{}|\n",
                 node.number(),
                 node.title(),
-                node.note()
+                review_state,
+                "Base/Root"
             ),
         };
 

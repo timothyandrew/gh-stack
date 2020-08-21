@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::error::Error;
 
 use crate::{api, Credentials};
-use crate::api::PullRequest;
+use crate::api::{PullRequest, PullRequestReview};
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct SearchItem {
@@ -14,6 +14,23 @@ pub struct SearchItem {
 #[derive(Deserialize, Debug)]
 struct SearchResponse {
     items: Vec<SearchItem>,
+}
+
+pub async fn fetch_reviews_for_pull_request(
+    pr: &PullRequest,
+    credentials: &Credentials,
+) -> Result<Vec<PullRequestReview>, Box<dyn Error>> {
+    let client = reqwest::Client::new();
+
+    let request = api::base_request(
+        &client,
+        &credentials,
+        &format!("{}/reviews", pr.url())[..],
+    );
+
+    let reviews = request.send().await?.json::<Vec<PullRequestReview>>().await?;
+
+    Ok(reviews)
 }
 
 pub async fn fetch_pull_requests_matching(
@@ -45,8 +62,12 @@ pub async fn fetch_pull_requests_matching(
     let responses: Vec<_> = join_all(items.map(|item| item.json::<PullRequest>()))
         .await
         .into_iter()
-        .map(|item| item.unwrap())
+        .map(|item| async {
+            let pr = item.unwrap();
+            let pr = pr.fetch_reviews(credentials).await.unwrap();
+            pr
+        })
         .collect();
 
-    Ok(responses)
+    Ok(join_all(responses).await)
 }

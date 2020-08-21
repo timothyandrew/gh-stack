@@ -4,6 +4,28 @@ use std::error::Error;
 use std::rc::Rc;
 
 use crate::{api, Credentials};
+use crate::api::search;
+
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[allow(non_camel_case_types)]
+pub enum PullRequestReviewState {
+    APPROVED,
+    PENDING,
+    CHANGES_REQUESTED,
+    DISMISSED
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct PullRequestReview {
+    state: PullRequestReviewState,
+    body: String
+}
+
+impl PullRequestReview {
+    pub fn is_approved(&self) -> bool {
+        self.state == PullRequestReviewState::APPROVED
+    }
+}
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct PullRequestRef {
@@ -31,7 +53,9 @@ pub struct PullRequest {
     url: String,
     body: String,
     state: PullRequestStatus,
-    draft: bool
+    draft: bool,
+    #[serde(skip)]
+    reviews: Vec<PullRequestReview>
 }
 
 impl PullRequest {
@@ -68,18 +92,33 @@ impl PullRequest {
         &self.state
     }
 
+    pub fn review_state(&self) -> PullRequestReviewState {
+        if self.at_least_one_approval() {
+            PullRequestReviewState::APPROVED
+        } else {
+            PullRequestReviewState::PENDING
+        }
+    }
+
     pub fn body(&self) -> &str {
         &self.body
     }
 
-    pub fn note(&self) -> &str {
-        match &self.state {
-            PullRequestStatus::Open => "N/A",
-            PullRequestStatus::Closed => "Merged",
-        }
+    pub async fn fetch_reviews(self, credentials: &Credentials) -> Result<PullRequest, Box<dyn Error>> {
+        let reviews = search::fetch_reviews_for_pull_request(&self, credentials).await?;
+
+        let pr = PullRequest {
+            reviews,
+            ..self
+        };
+
+        Ok(pr)
+    }
+
+    fn at_least_one_approval(&self) -> bool {
+        self.reviews.iter().any(|review| review.is_approved())
     }
 }
-
 
 #[derive(Serialize, Debug)]
 struct UpdateDescriptionRequest<'a> {

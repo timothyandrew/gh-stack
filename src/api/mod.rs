@@ -7,6 +7,8 @@ pub mod pull_request;
 
 pub use pull_request::PullRequest;
 pub use pull_request::PullRequestStatus;
+pub use pull_request::PullRequestReview;
+pub use pull_request::PullRequestReviewState;
 
 fn base_request(client: &Client, credentials: &Credentials, url: &str) -> RequestBuilder {
     client
