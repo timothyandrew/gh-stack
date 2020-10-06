@@ -17,17 +17,18 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
 
     let mut out = String::new();
 
+    if is_complete {
+        out.push_str(&format!("### ✅ Stacked PR Chain: {}\n", title));
+    } else {
+        out.push_str(&format!("### Stacked PR Chain: {}\n", title));
+    }
+
     if let Some(prelude_path) = prelude_path {
         let prelude = fs::read_to_string(prelude_path).unwrap();
         out.push_str(&prelude);
         out.push_str("\n");
     }
 
-    if is_complete {
-        out.push_str(&format!("### ✅ Stacked PR Chain: {}\n", title));
-    } else {
-        out.push_str(&format!("### Stacked PR Chain: {}\n", title));
-    }
     out.push_str("| PR | Title | Status |  Merges Into  |\n");
     out.push_str("|:--:|:------|:-------|:-------------:|\n");
 
