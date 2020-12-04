@@ -1,5 +1,4 @@
 use git2::Repository;
-use std::collections::HashMap;
 use std::env;
 use console::style;
 use std::error::Error;
@@ -84,13 +83,10 @@ async fn build_pr_stack(pattern: &str, credentials: &Credentials) -> Result<Flat
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let env: HashMap<String, String> = env::vars().collect();
+    dotenv::from_filename(".gh-stack").ok();
 
-    let token = env
-        .get("GHSTACK_OAUTH_TOKEN")
-        .expect("You didn't pass `GHSTACK_OAUTH_TOKEN`");
-
-    let credentials = Credentials::new(token);
+    let token = env::var("GHSTACK_OAUTH_TOKEN").expect("You didn't pass `GHSTACK_OAUTH_TOKEN`");
+    let credentials = Credentials::new(&token);
     let matches = clap().get_matches();
 
     match matches.subcommand() {
