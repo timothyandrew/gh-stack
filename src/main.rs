@@ -1,3 +1,4 @@
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use git2::Repository;
 use std::env;
 use console::style;
@@ -17,10 +18,18 @@ fn clap<'a, 'b>() -> App<'a, 'b> {
         .required(true)
         .help("All pull requests containing this identifier in their title form a stack");
 
+    let exclude = Arg::with_name("exclude")
+        .long("excl")
+        .short("e")
+        .multiple(true)
+        .takes_value(true)
+        .help("Exclude an issue from consideration (by number). Pass multiple times");
+
     let annotate = SubCommand::with_name("annotate")
         .about("Annotate the descriptions of all PRs in a stack with metadata about all PRs in the stack")
         .setting(AppSettings::ArgRequiredElseHelp)
         .arg(identifier.clone())
+        .arg(exclude.clone())
         .arg(Arg::with_name("prelude")
                 .long("prelude")
                 .short("p")
@@ -30,6 +39,7 @@ fn clap<'a, 'b>() -> App<'a, 'b> {
     let log = SubCommand::with_name("log")
         .about("Print a list of all pull requests in a stack to STDOUT")
         .setting(AppSettings::ArgRequiredElseHelp)
+        .arg(exclude.clone())
         .arg(identifier.clone());
 
     let autorebase = SubCommand::with_name("autorebase")
@@ -50,11 +60,13 @@ fn clap<'a, 'b>() -> App<'a, 'b> {
                 .value_name("SHA")
                 .help("Stop the initial cherry-pick at this SHA (exclusive)"))
         .setting(AppSettings::ArgRequiredElseHelp)
+        .arg(exclude.clone())
         .arg(identifier.clone());
 
     let rebase = SubCommand::with_name("rebase")
         .about("Print a bash script to STDOUT that can rebase/update the stack (with a little help)")
         .setting(AppSettings::ArgRequiredElseHelp)
+        .arg(exclude.clone())
         .arg(identifier.clone());
 
     let app = App::new("gh-stack")
@@ -70,15 +82,30 @@ fn clap<'a, 'b>() -> App<'a, 'b> {
     app
 }
 
-async fn build_pr_stack(pattern: &str, credentials: &Credentials) -> Result<FlatDep, Box<dyn Error>> {
+async fn build_pr_stack(
+    pattern: &str,
+    credentials: &Credentials,
+    exclude: Vec<String>,
+) -> Result<FlatDep, Box<dyn Error>> {
     let prs = api::search::fetch_pull_requests_matching(pattern, &credentials).await?;
+
     let prs = prs
         .into_iter()
+        .filter(|pr| !exclude.contains(&pr.number().to_string()))
         .map(Rc::new)
         .collect::<Vec<Rc<PullRequest>>>();
     let graph = graph::build(&prs);
     let stack = graph::log(&graph);
     Ok(stack)
+}
+
+fn get_excluded(m: &ArgMatches) -> Vec<String> {
+    let excluded = m.values_of("exclude");
+
+    match excluded {
+        Some(excluded) => excluded.map(String::from).collect(),
+        None => vec![],
+    }
 }
 
 #[tokio::main]
@@ -92,7 +119,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     match matches.subcommand() {
         ("annotate", Some(m)) => {
             let identifier = m.value_of("identifier").unwrap();
-            let stack = build_pr_stack(identifier, &credentials).await?;
+            let stack = build_pr_stack(identifier, &credentials, get_excluded(m)).await?;
             let table = markdown::build_table(&stack, identifier, m.value_of("prelude"));
 
             for (pr, _) in stack.iter() {
@@ -107,7 +134,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         ("log", Some(m)) => {
             let identifier = m.value_of("identifier").unwrap();
-            let stack = build_pr_stack(identifier, &credentials).await?;
+            let stack = build_pr_stack(identifier, &credentials, get_excluded(m)).await?;
 
             for (pr, maybe_parent) in stack {
                 match maybe_parent {
@@ -126,7 +153,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         ("rebase", Some(m)) => {
             let identifier = m.value_of("identifier").unwrap();
-            let stack = build_pr_stack(identifier, &credentials).await?;
+            let stack = build_pr_stack(identifier, &credentials, get_excluded(m)).await?;
 
             let script = git::generate_rebase_script(stack);
             println!("{}", script);
@@ -134,7 +161,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         ("autorebase", Some(m)) => {
             let identifier = m.value_of("identifier").unwrap();
-            let stack = build_pr_stack(identifier, &credentials).await?;
+            let stack = build_pr_stack(identifier, &credentials, get_excluded(m)).await?;
 
             let repo = m.value_of("repo").expect("The --repo argument is required.");
             let repo = Repository::open(repo)?;
