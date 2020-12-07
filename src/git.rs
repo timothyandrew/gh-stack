@@ -2,12 +2,7 @@ use crate::api::PullRequestStatus;
 use crate::graph::FlatDep;
 use crate::util::loop_until_confirm;
 use git2::build::CheckoutBuilder;
-use git2::{
-    CherrypickOptions,
-    Repository, Sort,
-    Revwalk, Oid, Commit,
-    Index
-};
+use git2::{CherrypickOptions, Commit, Index, Oid, Repository, Revwalk, Sort};
 
 use std::error::Error;
 use tokio::process::Command;
@@ -71,7 +66,8 @@ fn oid_to_commit(repo: &Repository, oid: Oid) -> Commit {
 }
 
 fn head_commit(repo: &Repository) -> Commit {
-    repo.find_commit(repo.head().unwrap().target().unwrap()).unwrap()
+    repo.find_commit(repo.head().unwrap().target().unwrap())
+        .unwrap()
 }
 
 fn checkout_commit(repo: &Repository, commit: &Commit, options: Option<&mut CheckoutBuilder>) {
@@ -98,7 +94,7 @@ fn create_commit<'a>(repo: &'a Repository, index: &mut Index, message: &str) -> 
             &signature,
             message,
             &tree,
-            &[&head_commit(repo)]
+            &[&head_commit(repo)],
         )
         .unwrap();
 
@@ -151,7 +147,7 @@ pub async fn perform_rebase(
     deps: FlatDep,
     repo: &Repository,
     remote: &str,
-    boundary: Option<&str>
+    boundary: Option<&str>,
 ) -> Result<(), Box<dyn Error>> {
     let deps = deps
         .iter()
@@ -165,7 +161,7 @@ pub async fn perform_rebase(
 
     let mut stop_cherry_pick_at = match boundary {
         Some(rev) => rev_to_commit(&repo, rev).id(),
-        None => repo.merge_base(base.id(), head.id()).unwrap()
+        None => repo.merge_base(base.id(), head.id()).unwrap(),
     };
     let mut update_local_branches_to = vec![];
 
@@ -198,7 +194,11 @@ pub async fn perform_rebase(
         let from = rev_to_commit(&repo, &remote_ref(remote, pr.head()));
         stop_cherry_pick_at = from.id();
 
-        push_refspecs.push(format!("{}:refs/heads/{}", head_commit(&repo).id(), pr.head()));
+        push_refspecs.push(format!(
+            "{}:refs/heads/{}",
+            head_commit(&repo).id(),
+            pr.head()
+        ));
     }
 
     let repo_dir = repo.workdir().unwrap().to_str().unwrap();

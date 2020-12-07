@@ -1,10 +1,10 @@
-use serde::Serialize;
 use serde::Deserialize;
+use serde::Serialize;
 use std::error::Error;
 use std::rc::Rc;
 
-use crate::{api, Credentials};
 use crate::api::search;
+use crate::{api, Credentials};
 
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 #[allow(non_camel_case_types)]
@@ -13,13 +13,13 @@ pub enum PullRequestReviewState {
     PENDING,
     CHANGES_REQUESTED,
     DISMISSED,
-    COMMENTED
+    COMMENTED,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct PullRequestReview {
     state: PullRequestReviewState,
-    body: String
+    body: String,
 }
 
 impl PullRequestReview {
@@ -56,7 +56,7 @@ pub struct PullRequest {
     state: PullRequestStatus,
     draft: bool,
     #[serde(skip)]
-    reviews: Vec<PullRequestReview>
+    reviews: Vec<PullRequestReview>,
 }
 
 impl PullRequest {
@@ -80,7 +80,7 @@ impl PullRequest {
         let title = self.title.trim();
         let title = match &self.draft {
             true => format!("*(Draft) {}*", title),
-            false => title.to_owned()
+            false => title.to_owned(),
         };
 
         match &self.state {
@@ -105,13 +105,13 @@ impl PullRequest {
         &self.body
     }
 
-    pub async fn fetch_reviews(self, credentials: &Credentials) -> Result<PullRequest, Box<dyn Error>> {
+    pub async fn fetch_reviews(
+        self,
+        credentials: &Credentials,
+    ) -> Result<PullRequest, Box<dyn Error>> {
         let reviews = search::fetch_reviews_for_pull_request(&self, credentials).await?;
 
-        let pr = PullRequest {
-            reviews,
-            ..self
-        };
+        let pr = PullRequest { reviews, ..self };
 
         Ok(pr)
     }

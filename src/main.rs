@@ -1,16 +1,15 @@
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use console::style;
 use git2::Repository;
 use std::env;
-use console::style;
 use std::error::Error;
-use clap::{Arg, App, SubCommand, AppSettings};
 use std::rc::Rc;
 
 use gh_stack::api::PullRequest;
 use gh_stack::graph::FlatDep;
+use gh_stack::util::loop_until_confirm;
 use gh_stack::Credentials;
 use gh_stack::{api, git, graph, markdown, persist};
-use gh_stack::util::loop_until_confirm;
 
 fn clap<'a, 'b>() -> App<'a, 'b> {
     let identifier = Arg::with_name("identifier")
@@ -64,7 +63,9 @@ fn clap<'a, 'b>() -> App<'a, 'b> {
         .arg(identifier.clone());
 
     let rebase = SubCommand::with_name("rebase")
-        .about("Print a bash script to STDOUT that can rebase/update the stack (with a little help)")
+        .about(
+            "Print a bash script to STDOUT that can rebase/update the stack (with a little help)",
+        )
         .setting(AppSettings::ArgRequiredElseHelp)
         .arg(exclude.clone())
         .arg(identifier.clone());
@@ -163,17 +164,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let identifier = m.value_of("identifier").unwrap();
             let stack = build_pr_stack(identifier, &credentials, get_excluded(m)).await?;
 
-            let repo = m.value_of("repo").expect("The --repo argument is required.");
+            let repo = m
+                .value_of("repo")
+                .expect("The --repo argument is required.");
             let repo = Repository::open(repo)?;
 
             let remote = m.value_of("remote").unwrap_or("origin");
             let remote = repo.find_remote(remote).unwrap();
 
-            git::perform_rebase(stack, &repo, remote.name().unwrap(), m.value_of("boundary")).await?;
+            git::perform_rebase(stack, &repo, remote.name().unwrap(), m.value_of("boundary"))
+                .await?;
             println!("All done!");
         }
 
-        (_, _) => panic!("Invalid subcommand.")
+        (_, _) => panic!("Invalid subcommand."),
     }
 
     Ok(())

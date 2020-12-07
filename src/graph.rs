@@ -43,9 +43,7 @@ pub fn log(graph: &Graph<Rc<PullRequest>, usize>) -> FlatDep {
         }
     }
 
-    out.sort_by_key(|(dep, _)| {
-        dep.state().clone()
-    });
+    out.sort_by_key(|(dep, _)| dep.state().clone());
 
     out
 }

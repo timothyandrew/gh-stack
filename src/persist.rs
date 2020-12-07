@@ -27,11 +27,7 @@ fn safe_replace(body: &str, table: &str) -> String {
     }
 }
 
-pub async fn persist(
-    prs: &FlatDep,
-    table: &str,
-    c: &Credentials,
-) -> Result<(), Box<dyn Error>> {
+pub async fn persist(prs: &FlatDep, table: &str, c: &Credentials) -> Result<(), Box<dyn Error>> {
     let futures = prs.iter().map(|(pr, _)| {
         let description = safe_replace(pr.body(), table);
         pull_request::update_description(description, pr.clone(), c)

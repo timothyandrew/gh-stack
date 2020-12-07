@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::fs;
 
-use crate::api::{PullRequestStatus, PullRequestReviewState};
+use crate::api::{PullRequestReviewState, PullRequestStatus};
 use crate::graph::FlatDep;
 
 fn process(row: String) -> String {
@@ -38,7 +38,7 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
             PullRequestReviewState::PENDING => "Pending",
             PullRequestReviewState::CHANGES_REQUESTED => "Changes requested",
             PullRequestReviewState::DISMISSED => "Dismissed",
-            PullRequestReviewState::COMMENTED => "Commented"
+            PullRequestReviewState::COMMENTED => "Commented",
         };
 
         let row = match (node.state(), parent) {
