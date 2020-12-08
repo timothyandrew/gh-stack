@@ -35,6 +35,7 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
     for (node, parent) in deps {
         let review_state = match node.review_state() {
             PullRequestReviewState::APPROVED => "**Approved**",
+            PullRequestReviewState::MERGED => "**Merged**",
             PullRequestReviewState::PENDING => "Pending",
             PullRequestReviewState::CHANGES_REQUESTED => "Changes requested",
             PullRequestReviewState::DISMISSED => "Dismissed",
@@ -48,12 +49,6 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
                 node.title(),
                 review_state,
                 "Base/Root"
-            ),
-            (PullRequestStatus::Closed, Some(parent)) => format!(
-                "|#{}|{}|**Merged**|#{}|\n",
-                node.number(),
-                node.title(),
-                parent.number()
             ),
             (_, Some(parent)) => format!(
                 "|#{}|{}|{}|#{}|\n",

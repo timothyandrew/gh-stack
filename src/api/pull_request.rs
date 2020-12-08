@@ -14,6 +14,7 @@ pub enum PullRequestReviewState {
     CHANGES_REQUESTED,
     DISMISSED,
     COMMENTED,
+    MERGED,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -54,6 +55,7 @@ pub struct PullRequest {
     url: String,
     body: String,
     state: PullRequestStatus,
+    merged_at: Option<String>,
     draft: bool,
     #[serde(skip)]
     reviews: Vec<PullRequestReview>,
@@ -94,7 +96,9 @@ impl PullRequest {
     }
 
     pub fn review_state(&self) -> PullRequestReviewState {
-        if self.at_least_one_approval() {
+        if !self.merged_at.is_none() {
+            PullRequestReviewState::MERGED
+        } else if self.at_least_one_approval() {
             PullRequestReviewState::APPROVED
         } else {
             PullRequestReviewState::PENDING
