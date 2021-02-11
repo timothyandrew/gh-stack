@@ -56,7 +56,7 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
                 node.number(),
                 node.title(),
                 review_state,
-                "Base/Root"
+                "-"
             ),
             (_, Some(parent)) => format!(
                 "|#{}|{}|{}|#{}|\n",
