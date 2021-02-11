@@ -42,6 +42,14 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
             PullRequestReviewState::COMMENTED => "Commented",
         };
 
+        let review_state = if node.review_state() != PullRequestReviewState::MERGED
+            && *node.state() == PullRequestStatus::Closed
+        {
+            "**Closed**"
+        } else {
+            review_state
+        };
+
         let row = match (node.state(), parent) {
             (_, None) => format!(
                 "|#{}|{}|{}|{}|\n",
