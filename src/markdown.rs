@@ -1,14 +1,7 @@
-use regex::Regex;
 use std::fs;
 
 use crate::api::{PullRequestReviewState, PullRequestStatus};
 use crate::graph::FlatDep;
-
-fn process(row: String) -> String {
-    // TODO: Make this configurable
-    let regex = Regex::new(r"\[[^\]]+\]\s*").unwrap();
-    regex.replace_all(&row, "").into_owned()
-}
 
 pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> String {
     let is_complete = deps
@@ -67,7 +60,7 @@ pub fn build_table(deps: &FlatDep, title: &str, prelude_path: Option<&str>) -> S
             ),
         };
 
-        out.push_str(&process(row));
+        out.push_str(&row);
     }
 
     out

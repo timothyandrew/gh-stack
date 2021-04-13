@@ -27,9 +27,18 @@ fn safe_replace(body: &str, table: &str) -> String {
     }
 }
 
+fn remove_title_prefixes(row: String) -> String {
+    // TODO: Make this configurable
+    let regex = Regex::new(r"\[[^\]]+\]\s*").unwrap();
+    regex.replace_all(&row, "").into_owned()
+}
+
+
 pub async fn persist(prs: &FlatDep, table: &str, c: &Credentials) -> Result<(), Box<dyn Error>> {
     let futures = prs.iter().map(|(pr, _)| {
-        let description = safe_replace(pr.body(), table);
+        let body = table.replace(&pr.title()[..], &format!("👉 {}", pr.title())[..]);
+        let body = remove_title_prefixes(body);
+        let description = safe_replace(pr.body(), body.as_ref());
         pull_request::update_description(description, pr.clone(), c)
     });
 
