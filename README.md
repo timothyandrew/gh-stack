@@ -2,7 +2,6 @@
 
 I use this tool to help managed stacked pull requests on Github, which are notoriously difficult to manage manually. Here are a few examples:
 
-- https://unhashable.com/stacked-pull-requests-keeping-github-diffs-small
 - https://stackoverflow.com/questions/26619478/are-dependent-pull-requests-in-github-possible
 - https://gist.github.com/Jlevyd15/66743bab4982838932dda4f13f2bd02a
 
