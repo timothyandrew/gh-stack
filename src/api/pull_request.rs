@@ -53,7 +53,7 @@ pub struct PullRequest {
     base: PullRequestRef,
     title: String,
     url: String,
-    body: String,
+    body: Option<String>,
     state: PullRequestStatus,
     merged_at: Option<String>,
     draft: bool,
@@ -106,7 +106,10 @@ impl PullRequest {
     }
 
     pub fn body(&self) -> &str {
-        &self.body
+        match &self.body {
+            Some(body) => body,
+            None => "",
+        }
     }
 
     pub async fn fetch_reviews(
