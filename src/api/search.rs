@@ -44,7 +44,7 @@ pub async fn fetch_pull_requests_matching(
         &credentials,
         "https://api.github.com/search/issues",
     )
-    .query(&[("q", format!("\"{}\" in:title", pattern))]);
+    .query(&[("q", format!("\"{}\" in:title,body", pattern))]);
 
     let items = request.send().await?.json::<SearchResponse>().await?.items;
 
