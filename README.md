@@ -45,6 +45,7 @@ $ cargo install gh-stack
 ## Usage
 
 ```bash
+# Access token should have at least the `repo` scope
 $ export GHSTACK_OAUTH_TOKEN='<personal access token>'
 
 $ gh-stack
